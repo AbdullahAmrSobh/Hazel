@@ -7,10 +7,6 @@
 #include "Hazel/Events/MouseEvent.h"
 #include "Hazel/Events/KeyEvent.h"
 
-#include "Hazel/Renderer/Renderer.h"
-
-#include "Platform/OpenGL/OpenGLContext.h"
-
 namespace Hazel {
 	
 	static uint8_t s_GLFWWindowCount = 0;
@@ -54,16 +50,10 @@ namespace Hazel {
 
 		{
 			HZ_PROFILE_SCOPE("glfwCreateWindow");
-		#if defined(HZ_DEBUG)
-			if (Renderer::GetAPI() == RendererAPI::API::OpenGL)
-				glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-		#endif
+			glfwWindowHint(GLFW_NO_API, GLFW_TRUE);
 			m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
 			++s_GLFWWindowCount;
 		}
-
-		m_Context = GraphicsContext::Create(m_Window);
-		m_Context->Init();
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(true);
@@ -177,19 +167,18 @@ namespace Hazel {
 		HZ_PROFILE_FUNCTION();
 
 		glfwPollEvents();
-		m_Context->SwapBuffers();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)
 	{
 		HZ_PROFILE_FUNCTION();
 
-		if (enabled)
-			glfwSwapInterval(1);
-		else
-			glfwSwapInterval(0);
-
-		m_Data.VSync = enabled;
+		// if (enabled)
+		// 	glfwSwapInterval(1);
+		// else
+		// 	glfwSwapInterval(0);
+		//
+		// m_Data.VSync = enabled;
 	}
 
 	bool WindowsWindow::IsVSync() const

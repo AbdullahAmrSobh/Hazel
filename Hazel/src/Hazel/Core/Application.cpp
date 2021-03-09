@@ -3,8 +3,6 @@
 
 #include "Hazel/Core/Log.h"
 
-#include "Hazel/Renderer/Renderer.h"
-
 #include "Hazel/Core/Input.h"
 
 #include <GLFW/glfw3.h>
@@ -21,18 +19,16 @@ namespace Hazel {
 		s_Instance = this;
 		m_Window = Window::Create(WindowProps(name));
 		m_Window->SetEventCallback(HZ_BIND_EVENT_FN(Application::OnEvent));
-
-		Renderer::Init();
-
-		m_ImGuiLayer = new ImGuiLayer();
-		PushOverlay(m_ImGuiLayer);
+		
+		// ImGui is disabled until A new RendererAPI, and Renderer Backends are implemented
+		// m_ImGuiLayer = new ImGuiLayer();
+		// PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application()
 	{
 		HZ_PROFILE_FUNCTION();
 
-		Renderer::Shutdown();
 	}
 
 	void Application::PushLayer(Layer* layer)
@@ -93,14 +89,15 @@ namespace Hazel {
 						layer->OnUpdate(timestep);
 				}
 
-				m_ImGuiLayer->Begin();
-				{
-					HZ_PROFILE_SCOPE("LayerStack OnImGuiRender");
-
-					for (Layer* layer : m_LayerStack)
-						layer->OnImGuiRender();
-				}
-				m_ImGuiLayer->End();
+				// ImGui is disabled until A new RendererAPI, and Renderer Backends are implemented
+				// m_ImGuiLayer->Begin();
+				// {
+				// 	HZ_PROFILE_SCOPE("LayerStack OnImGuiRender");
+				// 
+				// 	for (Layer* layer : m_LayerStack)
+				// 		layer->OnImGuiRender();
+				// }
+				// m_ImGuiLayer->End();
 			}
 
 			m_Window->OnUpdate();
@@ -124,7 +121,7 @@ namespace Hazel {
 		}
 
 		m_Minimized = false;
-		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
+		// Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
 
 		return false;
 	}
