@@ -50,7 +50,7 @@ namespace Hazel {
 
 		{
 			HZ_PROFILE_SCOPE("glfwCreateWindow");
-			glfwWindowHint(GLFW_NO_API, GLFW_TRUE);
+			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 			m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
 			++s_GLFWWindowCount;
 		}

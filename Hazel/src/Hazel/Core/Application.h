@@ -7,6 +7,8 @@
 #include "Hazel/Events/Event.h"
 #include "Hazel/Events/ApplicationEvent.h"
 
+#include "Hazel/RHI/RHI.h"
+
 #include "Hazel/Core/Timestep.h"
 
 #include "Hazel/ImGui/ImGuiLayer.h"
@@ -33,12 +35,16 @@ namespace Hazel {
 		ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
 
 		static Application& Get() { return *s_Instance; }
+		static RHI* GetRHI() { return Application::Get().GetRHIInstance(); }
 	private:
 		void Run();
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
+
+		RHI* GetRHIInstance() { return m_pRHI; }
 	private:
 		Scope<Window> m_Window;
+		RHI* m_pRHI;
 		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
 		bool m_Minimized = false;

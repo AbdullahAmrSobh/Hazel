@@ -15,6 +15,17 @@
 #include "Hazel/Core/KeyCodes.h"
 #include "Hazel/Core/MouseCodes.h"
 
+#include "Hazel/Core/ReadFiles.h"
+
 #include "Hazel/ImGui/ImGuiLayer.h"
 
 
+// RHI Headers
+
+#include "Hazel/RHI/RHI.h"
+#include "Hazel/RHI/RHIFrameBuffer.h"
+#include "Hazel/RHI/RHISwapChain.h"
+#include "Hazel/RHI/RHIShader.h"
+#include "Hazel/RHI/RHIPipelineState.h"
+#include "Hazel/RHI/RHIPipelineLayout.h"
+#include "Hazel/RHI/RHICommandBuffer.h"

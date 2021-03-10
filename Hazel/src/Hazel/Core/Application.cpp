@@ -20,6 +20,8 @@ namespace Hazel {
 		m_Window = Window::Create(WindowProps(name));
 		m_Window->SetEventCallback(HZ_BIND_EVENT_FN(Application::OnEvent));
 		
+		m_pRHI = RHI::CreateRHI(m_Window.get());
+
 		// ImGui is disabled until A new RendererAPI, and Renderer Backends are implemented
 		// m_ImGuiLayer = new ImGuiLayer();
 		// PushOverlay(m_ImGuiLayer);
@@ -28,7 +30,7 @@ namespace Hazel {
 	Application::~Application()
 	{
 		HZ_PROFILE_FUNCTION();
-
+		delete m_pRHI;
 	}
 
 	void Application::PushLayer(Layer* layer)
