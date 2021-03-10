@@ -40,7 +40,8 @@ project "Hazel"
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
-		"%{IncludeDir.ImGuizmo}"
+		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.Vulkan}"
 	}
 
 	links
@@ -49,7 +50,7 @@ project "Hazel"
 		"Glad",
 		"ImGui",
 		"yaml-cpp",
-		"opengl32.lib"
+		"%{LinkDir.VulkanSDKLib}/vulkan-1.lib"
 	}
 
 	filter "files:vendor/ImGuizmo/**.cpp"

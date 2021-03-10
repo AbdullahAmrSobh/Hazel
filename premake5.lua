@@ -23,6 +23,8 @@ workspace "Hazel"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+VulkanSDKVersion = "1.2.162.0"
+
 -- Include directories relative to root folder (solution directory)
 IncludeDir = {}
 IncludeDir["GLFW"] = "%{wks.location}/Hazel/vendor/GLFW/include"
@@ -33,6 +35,11 @@ IncludeDir["stb_image"] = "%{wks.location}/Hazel/vendor/stb_image"
 IncludeDir["entt"] = "%{wks.location}/Hazel/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "%{wks.location}/Hazel/vendor/yaml-cpp/include"
 IncludeDir["ImGuizmo"] = "%{wks.location}/Hazel/vendor/ImGuizmo"
+
+IncludeDir["Vulkan"] = "C:/VulkanSDK/%{VulkanSDKVersion}/Include"
+
+LinkDir = {}
+LinkDir["VulkanSDKLib"] = "C:/VulkanSDK/%{VulkanSDKVersion}/Lib"
 
 group "Dependencies"
 	include "vendor/premake"
