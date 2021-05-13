@@ -11,6 +11,9 @@ namespace Hazel
 	{
 	#ifdef HZ_PLATFORM_WINDOWS
 		return CreateScope<WindowsWindow>(props);
+
+	#elif defined(HZ_PLATFORM_LINUX)
+		return CreateScope<LinuxWindow>(props);
 	#else
 		HZ_CORE_ASSERT(false, "Unknown platform!");
 		return nullptr;

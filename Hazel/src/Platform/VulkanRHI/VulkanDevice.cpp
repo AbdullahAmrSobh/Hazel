@@ -1,90 +1,78 @@
 #include "hzpch.h"
+#include "Platform/VulkanRHI/VulkanUtils.h"
 #include "Platform/VulkanRHI/VulkanDevice.h"
+#include "Platform/VulkanRHI/VulkanQueue.h"
 
-namespace Hazel {
-	
-	VulkanDevice::~VulkanDevice()
+namespace Hazel 
+{
+
+	VulkanDevice::VulkanDevice(const Ref<VulkanPhysicalDeviceProperties>& pDeviceProperties, VkSurfaceKHR surfaceHandle)
+		: m_DeviceHandle(VK_NULL_HANDLE)
+		, m_pDeviceProperties(pDeviceProperties)
+		, m_pPresentQueue(nullptr)
+		, m_pGraphicsQueue(nullptr)
+		, m_pComputeQueue(nullptr)
+		, m_pTransferQueue(nullptr)
 	{
-		delete m_pPhysicalDeviceProperties;
-		vkDestroyDevice(m_DeviceHandle, nullptr);
-		vmaDestroyAllocator(m_AllocatorHandle);
-	}
+		std::vector<const char*> enabledLayers = GetEnabledLayers(), enabledExtensions = GetEnabledExtensions();
+		VkPhysicalDeviceFeatures enabledFeatures = GetEnabledFeatures();
+		
+		std::vector<VkDeviceQueueCreateInfo> queuesCreateInfo;
+		
+		uint32_t familyIndex = 0;
+		
+		float priorities = 1.0f;
 
-	void VulkanDevice::Init(VulkanPhysicalDeviceProperties* pPhysicalDeviceProperties)
-	{
-		m_pPhysicalDeviceProperties = pPhysicalDeviceProperties;
-
-		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-
-		uint32_t gfxQueueFamilyIndex
-			, presentQueueFamilyIndex;
-
-		for (uint32_t familyIndex = 0; familyIndex < m_pPhysicalDeviceProperties->QueueFamilies.size(); familyIndex++)
+		for (const auto& qfp : m_pDeviceProperties->QueueFamilies)
 		{
-			const VkQueueFamilyProperties currentFamily = m_pPhysicalDeviceProperties->QueueFamilies[familyIndex];
 			VkBool32 presentSupport = VK_FALSE;
-			VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(m_pPhysicalDeviceProperties->PhysicalDeviceHandle, familyIndex, m_pPhysicalDeviceProperties->SurfaceHandle, &presentSupport);
-			VK_ASSERT(result, "Failed to check present support on this queue and surface");
 
-			if ((currentFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT && presentSupport == VK_TRUE)
+			VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
+				m_pDeviceProperties->PhysicalDeviceHandle, familyIndex, surfaceHandle, &presentSupport);
+			VK_CHECK_RESULT(result, "Query Failed");
+
+			if (presentSupport && (qfp.queueFlags & VK_QUEUE_GRAPHICS_BIT))
 			{
-				float priority = 1.0f;
+				VkDeviceQueueCreateInfo createInfo	= {};
+				createInfo.sType					= VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+				createInfo.pNext					= nullptr;
+				createInfo.flags					= 0;
+				createInfo.queueFamilyIndex			= familyIndex;
+				createInfo.queueCount				= 1;
+				createInfo.pQueuePriorities			= &priorities;
 
-				VkDeviceQueueCreateInfo currentCreateInfo = {};
-				currentCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-				currentCreateInfo.pNext = NULL;
-				currentCreateInfo.flags = 0;
-				currentCreateInfo.queueFamilyIndex = familyIndex;
-				currentCreateInfo.queueCount = 1;
-				currentCreateInfo.pQueuePriorities = &priority;
-
-				queueCreateInfos.push_back(currentCreateInfo);
-				gfxQueueFamilyIndex = familyIndex;
-				presentSupport = familyIndex;
-
+				queuesCreateInfo.push_back(createInfo);
 				break;
 			}
-			else
-			{
-				gfxQueueFamilyIndex = 0;
-				presentQueueFamilyIndex = 0;
-			}
+
+			familyIndex++;
 		}
 
-		VkPhysicalDeviceFeatures features = {};
+		VkDeviceCreateInfo createInfo		= {};
+		createInfo.sType					= VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		createInfo.pNext					= nullptr;
+		createInfo.flags					= 0;
+		createInfo.queueCreateInfoCount		= queuesCreateInfo.size();
+		createInfo.pQueueCreateInfos		= queuesCreateInfo.data();
+		createInfo.enabledLayerCount		= enabledLayers.size();
+		createInfo.ppEnabledLayerNames		= enabledLayers.data();
+		createInfo.enabledExtensionCount	= enabledExtensions.size();
+		createInfo.ppEnabledExtensionNames	= enabledExtensions.data();
+		createInfo.pEnabledFeatures			= &enabledFeatures;
 
-		VkDeviceCreateInfo deviceCreateInfo		 = {};
-		deviceCreateInfo.sType					 = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		deviceCreateInfo.pNext					 = nullptr;
-		deviceCreateInfo.flags					 = 0;
-		deviceCreateInfo.queueCreateInfoCount	 = queueCreateInfos.size();
-		deviceCreateInfo.pQueueCreateInfos		 = queueCreateInfos.data();
-		deviceCreateInfo.enabledLayerCount		 = 0;
-		deviceCreateInfo.ppEnabledLayerNames	 = nullptr;
+		VK_CHECK_RESULT(vkCreateDevice(pDeviceProperties->PhysicalDeviceHandle, &createInfo, nullptr, &m_DeviceHandle), "Failed to check result");
 
-		std::vector<const char*> pExtensions = { "VK_KHR_swapchain" };
-		deviceCreateInfo.enabledExtensionCount	 = 1;
-		deviceCreateInfo.ppEnabledExtensionNames = pExtensions.data();
+		 m_pPresentQueue = new VulkanQueue(this, familyIndex);
+		m_pGraphicsQueue = m_pPresentQueue;
+		m_pComputeQueue = m_pPresentQueue;
+		m_pTransferQueue = m_pPresentQueue;
+	}
 
-		deviceCreateInfo.pEnabledFeatures = &features;
-
-		VK_ASSERT(vkCreateDevice(m_pPhysicalDeviceProperties->PhysicalDeviceHandle, &deviceCreateInfo, nullptr, &m_DeviceHandle), "Failed to create a vulkan logical device");
-
-		VkQueue queueHandle = VK_NULL_HANDLE;
-		vkGetDeviceQueue(m_DeviceHandle, gfxQueueFamilyIndex, 0, &queueHandle);
-
-		m_PresentQueue.Init(queueHandle);
-		m_GraphicsQueue.Init(queueHandle);
-		m_ComputeQueue.Init(queueHandle);
-		m_TransferQueue.Init(queueHandle);
-
-
-		VmaAllocatorCreateInfo allocatorCreateInfo	= {};
-		allocatorCreateInfo.instance				= m_pPhysicalDeviceProperties->InstanceHandle;
-		allocatorCreateInfo.physicalDevice			= m_pPhysicalDeviceProperties->PhysicalDeviceHandle;
-		allocatorCreateInfo.device					= m_DeviceHandle;
-
-		VK_ASSERT(vmaCreateAllocator(&allocatorCreateInfo, &m_AllocatorHandle), "Failed to create Vulkan Memory allocator object (vma)");
+	VulkanDevice::~VulkanDevice()
+	{
+		delete m_pPresentQueue;
+		vkDestroyDevice(m_DeviceHandle, nullptr);
 	}
 
 }
+

@@ -1,6 +1,7 @@
 include "./vendor/premake/premake_customization/solution_items.lua"
 
 workspace "Hazel"
+	-- location "./build"
 	architecture "x86_64"
 	startproject "Hazelnut"
 

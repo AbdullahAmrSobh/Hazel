@@ -1,47 +1,45 @@
 #pragma once
-#include <vulkan/vulkan.h>
 #include "Hazel/RHI/RHISwapChain.h"
 
-#include "Platform/VulkanRHI/VulkanRenderPass.h"
-#include "Platform/VulkanRHI/VulkanFrameBuffer.h"
+#include <vulkan/vulkan.h>
 
-namespace Hazel {
-
+namespace Hazel
+{
 	class VulkanDevice;
-
-	struct VulkanSwapChainDesc
-	{
-		VkSurfaceKHR					surface;
-		VkSurfaceFormatKHR				surfaceFormat;
-		VkPresentModeKHR				presentMode;
-		VkExtent2D						swapcainExtent;
-		VkSurfaceTransformFlagBitsKHR	transform;
-		uint32_t						minImageCount;
-	};
+	class VulkanQueue;
+	class VulkanRenderPass;
+	class VulkanFrameBuffer;
 
 	class VulkanSwapChain : public RHISwapChain
 	{
 	public:
-		VulkanSwapChain(const VulkanDevice* pDevice, const VulkanSwapChainDesc& desc);
+		VulkanSwapChain(const VulkanDevice* pDevice, const VulkanQueue* pQueue, const VkSwapchainCreateInfoKHR& createInfo);
 		~VulkanSwapChain();
 
-		virtual void SwapFrameBuffers() final override;
+		inline VkSwapchainKHR GetHandle() const { return m_SwapChainHandle; }
+
+		inline VulkanRenderPass* GetRenderPass() const { return m_pRenderPass; }
+
+		virtual void OnResize(uint32_t width, uint32_t height) final override;
 		virtual void Present() final override;
+		virtual void SwapBuffers() final override;
 
-		virtual uint32_t GetCurrentFrameBufferIndex() final override;
-		virtual uint32_t GetBackBuffersCount() final override;
-		virtual RHIFrameBuffer** GetFrameBuffers() final override;
-
-		inline const VulkanRenderPass* GetRenderPass() const { return &m_RenderPass; }
+		virtual RHIFrameBuffer** GetFrameBuffer() final override;
 
 	private:
-		const VulkanDevice*				m_pDevice;
-		VkSwapchainKHR					m_SwapChainHandle;
-		VulkanRenderPass				m_RenderPass;
-		uint32_t						m_CurrentFrameBufferIndex;
-		std::vector<VulkanFrameBuffer>  m_FrameBuffers;
-		std::vector<VkSemaphore>		m_WaitSemaphoresHandles;
 
-		VkSemaphore						m_ImageAvailableSemaphore;
+		void RetriveTheSwapChainImages(VkFormat imageFormat);
+		void InitRenderPass(VkFormat colorFormat);
+		void InitFrameBuffer(VkFormat format);
+			
+	private:
+		const VulkanDevice*				m_pDevice;
+		const VulkanQueue*				m_pQueue;
+		VkSwapchainKHR					m_SwapChainHandle;
+		uint32_t						m_Width;
+		uint32_t						m_Height;
+		VulkanRenderPass*				m_pRenderPass;
+		std::vector<VkImage>			m_SwapChainImages;
+		std::vector<VulkanFrameBuffer*> m_pFrameBuffers;
 	};
 }

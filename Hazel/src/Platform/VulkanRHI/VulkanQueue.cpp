@@ -1,35 +1,44 @@
 #include "hzpch.h"
-#include "Platform/VulkanRHI/VulkanCommon.h"
-#include "Platform/VulkanRHI/VulkanCommandBuffer.h"
+#include "Platform/VulkanRHI/VulkanUtils.h"
+#include "Platform/VulkanRHI/VulkanDevice.h"
+
+#include "Platform/VulkanRHI/VulkanCommandBuffers.h"
+#include "Platform/VulkanRHI/VulkanResources.h"
 #include "Platform/VulkanRHI/VulkanQueue.h"
+
 
 namespace Hazel {
 
-	void VulkanQueue::Init(VkQueue queue)
+
+	VulkanQueue::VulkanQueue(VulkanDevice* pDevice, uint32_t familyIndex, uint32_t queueIndex)
+		: m_pDevice(pDevice), m_QueueHandle(VK_NULL_HANDLE), m_FamilyIndex(familyIndex), m_QueueIndex(queueIndex)
 	{
-		m_QueueHandle = queue;
+		vkGetDeviceQueue(m_pDevice->GetHandle(), m_FamilyIndex, m_QueueIndex, &m_QueueHandle);
 	}
 
-	void VulkanQueue::Execute(VulkanCommandBuffer* pCommandBuffer, VkSemaphore imageAvailableSemaphore, VkSemaphore signalSemaphores) const
+	void VulkanQueue::SubmitCommandBuffer(VulkanCommandBuffer* pCommandBuffers, VulkanFence* pFence)
 	{
+		// std::vector<VkSemaphore> waitSemaphore = { pCommandBuffers->GetWaitSemaphores() };
+		std::vector<VkSemaphore> waitSemaphore{ };
+		// std::vector<VkPipelineStageFlags> stageFlags{ VK_SHADER_STAGE_ALL_GRAPHICS };
+		std::vector<VkPipelineStageFlags> stageFlags{ };
+		std::vector<VkSemaphore> signalSemaphore{};
 
-		VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
-		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		VkCommandBuffer commandBuffers[] = { pCommandBuffer->GetHandle() };
-		VkSemaphore SignalSemaphores[] = { signalSemaphores };
+		VkCommandBuffer cmdBuffers = pCommandBuffers->GetHandle();
 
 		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.pNext = nullptr;
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = commandBuffers;
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = SignalSemaphores;
+		submitInfo.sType					= VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pNext					= nullptr;
+		submitInfo.waitSemaphoreCount		= waitSemaphore.size();
+		submitInfo.pWaitSemaphores			= waitSemaphore.data();
+		submitInfo.pWaitDstStageMask		= stageFlags.data();
+		submitInfo.commandBufferCount		= 1;
+		submitInfo.pCommandBuffers			= &cmdBuffers;
+		submitInfo.signalSemaphoreCount		= signalSemaphore.size();
+		submitInfo.pSignalSemaphores		= signalSemaphore.data();
 
-		VK_ASSERT(vkQueueSubmit(m_QueueHandle, 1, &submitInfo, VK_NULL_HANDLE), "Failed to submit")
+		vkQueueSubmit(m_QueueHandle, 1, &submitInfo, pFence != nullptr ? pFence->GetHandle() : VK_NULL_HANDLE);
+		vkQueueWaitIdle(m_QueueHandle);
 	}
 
 }

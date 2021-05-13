@@ -27,6 +27,17 @@
 
 namespace Hazel {
 
+	class NonCopyable
+	{
+	public:
+		NonCopyable(const NonCopyable& other) = delete;
+		NonCopyable& operator = (const NonCopyable&) = delete;
+
+	protected:
+		NonCopyable() = default;
+		~NonCopyable() = default;
+	};
+
 	template<typename T>
 	using Scope = std::unique_ptr<T>;
 	template<typename T, typename ... Args>

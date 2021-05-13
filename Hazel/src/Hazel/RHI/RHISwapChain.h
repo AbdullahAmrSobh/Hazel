@@ -1,18 +1,30 @@
 #pragma once
-#include "Hazel/RHI/RHIFrameBuffer.h"
+#include "RHIObject.h"
 
 namespace Hazel {
 
-	class RHISwapChain
+	class RHIFrameBuffer;
+	class RHIFence;
+
+	class RHISwapChain : public RHIObject
 	{
 	public:
-		virtual ~RHISwapChain() = default;
 
-		virtual void SwapFrameBuffers() = 0;
+		inline uint32_t GetCurrentFrameIndex() const { return m_CurrentFrameIndex; }
+		inline uint32_t GetBackBuffersCount() const { return m_BackBuffersCount; }
+
+		inline RHIFence* GetFence() { return m_pFence; };
+		inline const RHIFence* GetFence() const { return m_pFence; };
+
+		virtual void OnResize(uint32_t width, uint32_t height) = 0;
 		virtual void Present() = 0;
+		virtual void SwapBuffers() = 0;
 
-		virtual uint32_t GetCurrentFrameBufferIndex() = 0;
-		virtual uint32_t GetBackBuffersCount() = 0;
-		virtual RHIFrameBuffer** GetFrameBuffers() = 0;
+		virtual RHIFrameBuffer** GetFrameBuffer() = 0;
+
+	protected:
+		uint32_t m_CurrentFrameIndex;
+		uint32_t m_BackBuffersCount;
+		RHIFence* m_pFence;
 	};
 }

@@ -50,7 +50,8 @@ project "Hazel"
 		"Glad",
 		"ImGui",
 		"yaml-cpp",
-		"%{LinkDir.VulkanSDKLib}/vulkan-1.lib"
+		"%{LinkDir.VulkanSDKLib}/vulkan-1.lib",
+		"D3D12.lib"
 	}
 
 	filter "files:vendor/ImGuizmo/**.cpp"
