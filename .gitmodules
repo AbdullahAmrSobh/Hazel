@@ -20,3 +20,6 @@
 [submodule "Hazel/vendor/ImGuizmo"]
 	path = Hazel/vendor/ImGuizmo
 	url = https://github.com/thecherno/imguizmo
+[submodule "Hazel/vendor/shaderc/shaderc"]
+	path = Hazel/vendor/shaderc/shaderc
+	url = https://github.com/google/shaderc.git
