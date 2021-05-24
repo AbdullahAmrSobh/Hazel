@@ -11,11 +11,8 @@
 #include "Platform/VulkanRHI/VulkanShader.h"
 #include "Platform/VulkanRHI/VulkanPipelineState.h"
 #include "Platform/VulkanRHI/VulkanCommandBuffers.h"
-
 #include "Platform/VulkanRHI/VulkanDescriptors.h"
-
 #include "Platform/VulkanRHI/VulkanResources.h"
-
 #include "Platform/VulkanRHI/VulkanRHI.h"
 
 
@@ -34,8 +31,7 @@ namespace Hazel
 
 	void VulkanRHI::OnUpdate()
 	{
-		m_pSwapChain->Present();
-		m_pSwapChain->SwapBuffers();
+
 	}
 
 	RHISwapChain* VulkanRHI::GetSwapChain()
@@ -63,19 +59,18 @@ namespace Hazel
 		std::vector<VkDescriptorSetLayout> layouts = {};
 		layouts.reserve(desc.DescriptorsLayouts.size());
 
-		for (auto& layout : desc.DescriptorsLayouts)
-			layouts.push_back(m_pDescriptorsLayoutManager->GetOrCreate(layout));
+		for (auto& layout : desc.DescriptorsLayouts) layouts.push_back(m_pDescriptorsLayoutManager->GetOrCreate(layout));
 		
 		return new VulkanPipelineLayout(m_pDevice, layouts.size(), layouts.data());
 	}
 
 	RHIGraphicsPipelineState* VulkanRHI::CreateGraphicsPipelineState(const RHIGraphicsPipelineStateDesc& desc)
 	{
-		RHIViewport viewportDesc;
+		RHIViewport viewportDesc = {};
 		viewportDesc.Width = m_pWindow->GetWidth();
 		viewportDesc.Height = m_pWindow->GetHeight();
 
-		RHIReact2D reactDesc;
+		RHIReact2D reactDesc = {};
 		reactDesc.Width = m_pWindow->GetWidth();
 		reactDesc.Height = m_pWindow->GetHeight();
 
@@ -95,16 +90,16 @@ namespace Hazel
 		createInfo.pNext = nullptr;
 		createInfo.flags = 0;
 
-		shaderStage.WriteTo(&createInfo.stageCount, &createInfo.pStages);
-		vertexInput.WriteTo(&createInfo.pVertexInputState);
-		inputAssembly.WriteTo(&createInfo.pInputAssemblyState);
-		tessellation.WriteTo(&createInfo.pTessellationState);
-		viewport.WriteTo(&createInfo.pViewportState);
-		rasterization.WriteTo(&createInfo.pRasterizationState);
-		multisample.WriteTo(&createInfo.pMultisampleState);
-		depthStencil.WriteTo(&createInfo.pDepthStencilState);
-		colorBlend.WriteTo(&createInfo.pColorBlendState);
-		dynamic.WriteTo(&createInfo.pDynamicState);
+		shaderStage		.WriteTo(&createInfo.stageCount, &createInfo.pStages);
+		vertexInput		.WriteTo(&createInfo.pVertexInputState);
+		inputAssembly	.WriteTo(&createInfo.pInputAssemblyState);
+		tessellation	.WriteTo(&createInfo.pTessellationState);
+		viewport		.WriteTo(&createInfo.pViewportState);
+		rasterization	.WriteTo(&createInfo.pRasterizationState);
+		multisample		.WriteTo(&createInfo.pMultisampleState);
+		depthStencil	.WriteTo(&createInfo.pDepthStencilState);
+		colorBlend		.WriteTo(&createInfo.pColorBlendState);
+		dynamic			.WriteTo(&createInfo.pDynamicState);
 
 		VulkanPipelineLayout* pLayout = reinterpret_cast<VulkanPipelineLayout*>(desc.pLayout);
 
@@ -149,6 +144,36 @@ namespace Hazel
 	RHIIndexBuffer* VulkanRHI::CreateIndexBuffer(uint32_t indciesCount, uint32_t stride) 
 	{
 		return new VulkanIndexBuffer(m_pDevice, m_pAllocator, indciesCount, stride);
+	}
+
+	RHISampler* VulkanRHI::CreateSampler(const RHISamplerDesc& desc)
+	{
+		VkSamplerCreateInfo createInfo		= {};
+		createInfo.sType					= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		createInfo.pNext					= nullptr;
+		createInfo.flags					= 0;
+		createInfo.magFilter				= VulkanUtils::GetFilter(desc.Filter);
+		createInfo.minFilter				= VulkanUtils::GetFilter(desc.Filter);
+		createInfo.mipmapMode				= VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		createInfo.addressModeU				= VulkanUtils::GetAddressMode(desc.AddressU);
+		createInfo.addressModeV				= VulkanUtils::GetAddressMode(desc.AddressV);
+		createInfo.addressModeW				= VulkanUtils::GetAddressMode(desc.AddressW);
+		createInfo.mipLodBias				= desc.MipLODBias;
+		createInfo.anisotropyEnable			= desc.MaxAnisotropy != 0.0f ? VK_FALSE : VK_TRUE;
+		createInfo.maxAnisotropy			= desc.MaxAnisotropy;
+		createInfo.compareEnable			= VulkanUtils::GetCompareOp(desc.ComparisonFunc) != VK_COMPARE_OP_MAX_ENUM ? VK_FALSE : VK_TRUE;
+		createInfo.compareOp				= VulkanUtils::GetCompareOp(desc.ComparisonFunc);
+		createInfo.minLod					= desc.MinLOD;
+		createInfo.maxLod					= desc.MaxLOD;
+		createInfo.borderColor				= VulkanUtils::GetBorderColor(desc.Border);
+		createInfo.unnormalizedCoordinates	= (desc.MinLOD || desc.MaxLOD)? VK_TRUE : VK_FALSE;
+
+		return new VulkanSampler(m_pDevice, createInfo);
+	}
+
+	RHITexture2D* VulkanRHI::CreateTexture2D(const RHITexture2DDesc& desc) 
+	{
+		return new VulkanTexture2D(m_pDevice, m_pAllocator, desc);
 	}
 
 }

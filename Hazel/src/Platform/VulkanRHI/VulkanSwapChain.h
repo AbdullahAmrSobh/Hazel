@@ -16,7 +16,7 @@ namespace Hazel
 		VulkanSwapChain(const VulkanDevice* pDevice, const VulkanQueue* pQueue, const VkSwapchainCreateInfoKHR& createInfo);
 		~VulkanSwapChain();
 
-		inline VkSwapchainKHR GetHandle() const { return m_SwapChainHandle; }
+		inline VkSwapchainKHR GetHandle() const { return m_Handle; }
 
 		inline VulkanRenderPass* GetRenderPass() const { return m_pRenderPass; }
 
@@ -34,12 +34,9 @@ namespace Hazel
 			
 	private:
 		const VulkanDevice*				m_pDevice;
-		const VulkanQueue*				m_pQueue;
-		VkSwapchainKHR					m_SwapChainHandle;
-		uint32_t						m_Width;
-		uint32_t						m_Height;
+		const VulkanQueue*				m_pPresentQueue;
+		VkSwapchainKHR					m_Handle;
 		VulkanRenderPass*				m_pRenderPass;
-		std::vector<VkImage>			m_SwapChainImages;
 		std::vector<VulkanFrameBuffer*> m_pFrameBuffers;
 	};
 }

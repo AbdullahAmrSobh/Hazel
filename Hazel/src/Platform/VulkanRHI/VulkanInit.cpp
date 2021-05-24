@@ -29,9 +29,13 @@ namespace Hazel
 		else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
 			HZ_CORE_WARN("[{0} : {1}] : {2}", callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
 		else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-			HZ_CORE_WARN("[{0} : {1}] : {2}", callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
+			HZ_CORE_WARN("{0} \n : \n {1} : \n {2}", callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
 		else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-			HZ_CORE_ERROR("[{0} : {1}] : {2}", callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
+		{
+			std::stringstream msg;
+			msg << callback_data->messageIdNumber << ":" << callback_data->pMessageIdName << ":" << callback_data->pMessage;
+			HZ_CORE_ASSERT(false, msg.str().c_str());
+		}
 
 		return VK_FALSE;
 	}
@@ -108,7 +112,6 @@ namespace Hazel
 		ci.ppEnabledLayerNames		= enabledLayers.data();
 		ci.enabledExtensionCount	= enabledExtensions.size();
 		ci.ppEnabledExtensionNames	= enabledExtensions.data();
-
 		VkResult result = vkCreateInstance(&ci, nullptr, &m_InstanceHandle);
 
 		VK_CHECK_RESULT(result, "Failed to check result");

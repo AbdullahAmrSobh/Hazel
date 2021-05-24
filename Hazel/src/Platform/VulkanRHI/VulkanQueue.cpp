@@ -18,11 +18,9 @@ namespace Hazel {
 
 	void VulkanQueue::SubmitCommandBuffer(VulkanCommandBuffer* pCommandBuffers, VulkanFence* pFence)
 	{
-		// std::vector<VkSemaphore> waitSemaphore = { pCommandBuffers->GetWaitSemaphores() };
-		std::vector<VkSemaphore> waitSemaphore{ };
-		// std::vector<VkPipelineStageFlags> stageFlags{ VK_SHADER_STAGE_ALL_GRAPHICS };
-		std::vector<VkPipelineStageFlags> stageFlags{ };
-		std::vector<VkSemaphore> signalSemaphore{};
+		std::vector<VkSemaphore> waitSemaphore{ pCommandBuffers->GetWaitSemaphores() };
+		std::vector<VkPipelineStageFlags> stageFlags{ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		std::vector<VkSemaphore> signalSemaphore{ };
 
 		VkCommandBuffer cmdBuffers = pCommandBuffers->GetHandle();
 

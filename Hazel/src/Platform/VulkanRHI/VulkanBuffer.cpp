@@ -37,8 +37,7 @@ namespace Hazel {
 
 	VulkanBuffer::~VulkanBuffer()
 	{
-		vkDestroyBuffer(m_pDevice->GetHandle(), m_BufferHandle, nullptr);
-		vmaFreeMemory(m_pAllocator->GetHandle(), m_Allocation);
+		vmaDestroyBuffer(m_pAllocator->GetHandle(), m_BufferHandle, m_Allocation);
 	}
 
 	void VulkanBuffer::Init(const VkBufferCreateInfo& createInfo, const VmaAllocationCreateInfo& allocationInfo)
@@ -83,13 +82,15 @@ namespace Hazel {
 	void* VulkanStagingBuffer::Lock(size_t offset, size_t size)
 	{
 		void* pTarget;
-		VK_CHECK_RESULT(vmaMapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation(), &pTarget), "Failed to map memory");
+		// VK_CHECK_RESULT(vmaMapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation(), &pTarget), "Failed to map memory");
+		VK_CHECK_RESULT(vkMapMemory(m_pDevice->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetInfo().deviceMemory, offset, size, 0, &pTarget), "Failed to map memory");
 		return pTarget;
 	}
 
 	void VulkanStagingBuffer::Unlock()
 	{
-		vmaUnmapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation());
+		// vmaUnmapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation());
+		vkUnmapMemory(m_pDevice->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetInfo().deviceMemory);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,7 +200,6 @@ namespace Hazel {
 		VK_CHECK_RESULT(vmaMapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation(), &pTarget), "Failed to map memory");
 		memcpy(pTarget, pData, dataSize);
 		vmaUnmapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation());
-
 	}
 
 

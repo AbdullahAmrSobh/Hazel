@@ -3,11 +3,11 @@
 #include "Hazel/RHI/RHIFrameBuffer.h"
 
 #include <vulkan/vulkan.h>
+#include "Platform/VulkanRHI/VulkanResources.h"
 
 namespace Hazel {
 
 	class VulkanDevice;
-	class VulkanSemaphore;
 
 	class VulkanRenderPass : public RHIRenderPass
 	{
@@ -40,9 +40,8 @@ namespace Hazel {
 		inline VkImage GetImage() const { return m_ImageHandle; }
 		inline const std::vector<VkImageView>&	GetViews() const { return m_Views; }
 		inline const VulkanRenderPass* GetRenderPass() const { return m_pRenderPass; }
-		inline void AddRenderingSemaphore(VkSemaphore semaphore) { m_RenderingSemaphores.push_back(semaphore); }
 		
-		inline VkSemaphore GetImageAvailableSemaphore() const { return m_ImageAvailableSemaphore; }
+		inline const VulkanSemaphore& GetImageAvailableSemaphore() const { return m_FrameAvailableSemaphore; }
 
 
 	private:
@@ -52,9 +51,6 @@ namespace Hazel {
 		VkImage						m_ImageHandle;
 		std::vector<VkImageView>	m_Views;
 
-		std::vector<VulkanSemaphore*> m_Semaphores;
-
-		std::vector<VkSemaphore>	m_RenderingSemaphores;
-		VkSemaphore					m_ImageAvailableSemaphore;
+		VulkanSemaphore				m_FrameAvailableSemaphore;
 	};
 }

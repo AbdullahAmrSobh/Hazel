@@ -6,12 +6,16 @@
 #include <glm/glm/ext/matrix_transform.hpp>
 #include <glm/glm/ext/matrix_clip_space.inl>
 
-std::string ReadFile(const std::string& filepath)
+#include <stb_image/stb_image.h>
+
+#include <imgui/imgui.h>
+
+static std::string ReadFile(const std::string& filepath)
 {
 	HZ_PROFILE_FUNCTION();
 
 	std::string result;
-	std::ifstream in(filepath, std::ios::in | std::ios::binary); // ifstream closes itself due to RAII
+	std::ifstream in(filepath, std::ios::in | std::ios::binary);
 	if (in)
 	{
 		in.seekg(0, std::ios::end);
@@ -31,8 +35,28 @@ std::string ReadFile(const std::string& filepath)
 	{
 		HZ_ERROR("Could not open file '{0}'", filepath);
 	}
+	
+	in.close();
 
 	return result;
+}
+
+struct Image
+{
+	int32_t Width;
+	int32_t Height;
+	int32_t Channels;
+	stbi_uc* Pixels;
+	size_t Size;
+};
+
+static Image ReadImage(const std::string& path)
+{
+	Image img;
+	img.Pixels = stbi_load(path.c_str(), &img.Width, &img.Height, &img.Channels, STBI_rgb_alpha);
+	img.Size = img.Width * img.Height;
+	HZ_CORE_ASSERT(img.Pixels, "Failed to open asset");
+	return img;
 }
 
 SandboxRHI::SandboxRHI()
@@ -53,8 +77,8 @@ void SandboxRHI::OnAttach()
 
 	// Define the descriptorset layout of main uniform buffers
 	RHIDescriptorSetLayoutDesc dsl{ "u_SceneProj", { 
-		{ "u_Model", 0, RHIDescriptorType::eUniformBuffer, 1, RHIPipelineShaderStage::eVertexShader },
-		{ "u_ViewProj", 1, RHIDescriptorType::eUniformBuffer, 1, RHIPipelineShaderStage::eVertexShader }
+		{ "u_Mvp", 0, RHIDescriptorType::eUniformBuffer, 1, RHIPipelineShaderStage::eVertexShader },
+		{ "u_Texture", 1, RHIDescriptorType::eTexture, 1, RHIPipelineShaderStage::ePixelShader }
 	} };
 
 	// Create descriptor allocator and descriptor set
@@ -83,8 +107,9 @@ void SandboxRHI::OnAttach()
 		HZ_ASSERT(pVertexShader != nullptr && pPixelShader != nullptr);
 
 		RHIVertexBufferLayout vboLayout({
-				{ "Position", RHIFormat::eFloat2 },
-				{ "Color",	  RHIFormat::eFloat3 }
+				{ "Position", RHIFormat::eFloatRGB },
+				{ "TexCoors", RHIFormat::eFloatRG },
+				{ "Color",	  RHIFormat::eFloatRGB }
 			});
 
 		RHIGraphicsPipelineStateDesc stateDesc	= {};
@@ -98,77 +123,152 @@ void SandboxRHI::OnAttach()
 
 	// Create Vertex Buffer, and Index Buffer
 	{
-		float vertcies[] = { 
-			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
-			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-			 0.5f,	0.5f, 0.0f, 0.0f, 1.0f,
-			-0.5f,	0.5f, 1.0f, 1.0f, 1.0f 
+		struct Vertex
+		{
+			float position[3];
+			float TexCoords[2];
+			float VertexColor[3];
 		};
 
-		uint32_t indcies[] = {0, 1, 2, 2, 3, 0};
+		std::array<Vertex, 4> vertexData = {
+			// Position, Tex Coords, Color 
+			Vertex({{ -0.5f, -0.5f, 0.0f}, { 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}}),
+			Vertex({{  0.5f, -0.5f, 0.0f}, { 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}}),
+			Vertex({{  0.5f,  0.5f, 0.0f}, { 0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}}),
+			Vertex({{ -0.5f,  0.5f, 0.0f}, { 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}})
+		};
 
-		pVertexBuffer	 = pRHI->CreateVertexBuffer(4, 5 * sizeof(float));
-		pIndexBuffer	 = pRHI->CreateIndexBuffer(6, sizeof(uint32_t));
-		pStaginingBuffer = pRHI->CreateStagingBuffer(sizeof(vertcies) + sizeof(indcies));
+		std::array<uint32_t, 6> indexData = {0, 1, 2, 2, 3, 0};
+
+		Image textureData = ReadImage("./assets/textures/texture.jpg");
+
+		size_t vertexDataSize		= vertexData.size() * sizeof(Vertex);
+		size_t indexDataSize		= indexData.size() * sizeof(uint32_t);
+		size_t amazingTextureSize	= static_cast<size_t>(textureData.Width) * textureData.Height * 4;
+
+		pStaginingBuffer	= pRHI->CreateStagingBuffer(vertexDataSize + indexDataSize + amazingTextureSize);
+
+		pVertexBuffer		= pRHI->CreateVertexBuffer(vertexData.size(), sizeof(Vertex));
+		pIndexBuffer		= pRHI->CreateIndexBuffer(indexData.size(), sizeof(uint32_t));
 		
-		pStaginingBuffer->CopyData(sizeof(vertcies), vertcies, 0);
-		pStaginingBuffer->CopyData(sizeof(indcies), indcies, sizeof(indcies));
+		RHISamplerDesc samplerDesc	= {};
+		samplerDesc.Filter			= RHIFilter::eNearest;
+		samplerDesc.AddressU		= RHITextureAddressMode::eRepeat;
+		samplerDesc.AddressV		= RHITextureAddressMode::eRepeat;
+		samplerDesc.AddressW		= RHITextureAddressMode::eRepeat;
+		samplerDesc.MipLODBias		= 1;
+		samplerDesc.MaxAnisotropy	= 1.0;
+		samplerDesc.ComparisonFunc	= RHIComparsionOperation::eAlways;
+		samplerDesc.BorderColor[4]	= {};
+		samplerDesc.MinLOD			= 0.0f;
+		samplerDesc.MaxLOD			= 0.0f;
+		samplerDesc.Border			= RHISamplerBorderColor::eIntOpaqueBlack;
+		pSampler					= pRHI->CreateSampler(samplerDesc);
 
+		RHITexture2DDesc textureDesc	= {};
+		textureDesc.Width				= textureData.Width;
+		textureDesc.Height				= textureData.Height;
+
+		switch (textureData.Channels)
+		{
+		case 1:  textureDesc.Format = RHIFormat::eSRGB_R8; break;
+		case 2:  textureDesc.Format = RHIFormat::eSRGB_RG8; break;
+		case 3:  textureDesc.Format = RHIFormat::eSRGB_RGB8; break;
+		case 4:  textureDesc.Format = RHIFormat::eSRGB_RGBA8; break;
+		default: HZ_ASSERT(false, "Something went wrong!");
+		}
+
+		textureDesc.Format = RHIFormat::eSRGB_RGBA8;
+
+		textureDesc.MipLevels			= 1;
+		textureDesc.SampleCount			= 1;
+
+		pAmazingTexture = pRHI->CreateTexture2D(textureDesc);
+
+		{
+			void* target = pStaginingBuffer->Lock(0, vertexDataSize);
+			memcpy(target, vertexData.data(), vertexDataSize);
+			pStaginingBuffer->Unlock();
+		}
+
+		{
+			void* target = pStaginingBuffer->Lock(0 + vertexDataSize, indexDataSize);
+			memcpy(target, indexData.data(), indexDataSize);
+			pStaginingBuffer->Unlock();
+		}
+
+		{
+			void* target = pStaginingBuffer->Lock(0 + vertexDataSize + indexDataSize, amazingTextureSize);
+			memcpy(target, textureData.Pixels, amazingTextureSize);
+			pStaginingBuffer->Unlock();
+		}
+
+		// A fence to prevent rendering before all staged resources are copied.
 		RHIFence* pResourceCopyFence = pRHI->CreateFence();
-		RHICommandBuffer* pResourceCopyCmdBuffer1 = pRHI->AllocateCommandBuffer();
-		RHICommandBuffer* pResourceCopyCmdBuffer2 = pRHI->AllocateCommandBuffer();
+		RHICommandBuffer* pResourceCopyCmdBuffer = pRHI->AllocateCommandBuffer();
 
-		RHIBufferCopyDesc copyDesc  = {};
-		pResourceCopyCmdBuffer1->Begin();
-		copyDesc.SrcBuffer			= pStaginingBuffer->GetBuffer();
-		copyDesc.DstBuffer			= pVertexBuffer->GetBuffer();
-		copyDesc.SrcOffset			= 0;
-		copyDesc.DstOffset			= 0;
-		copyDesc.Size				= pVertexBuffer->GetBuffer()->GetSize();
-		pResourceCopyCmdBuffer1->CopyResource(copyDesc);
-		pResourceCopyCmdBuffer1->End();
+		pResourceCopyCmdBuffer->Begin();
 
-		pResourceCopyCmdBuffer2->Begin();
-		copyDesc.SrcBuffer	= pStaginingBuffer->GetBuffer();
-		copyDesc.DstBuffer	= pIndexBuffer->GetBuffer();
-		copyDesc.SrcOffset	= 0;
-		copyDesc.DstOffset	= 0;
-		copyDesc.Size		= pIndexBuffer->GetBuffer()->GetSize();
-		pResourceCopyCmdBuffer2->CopyResource(copyDesc);
-		pResourceCopyCmdBuffer2->End();
+		// Copy Vertex buffer data
+		{
+			RHIBufferCopyDesc copyDesc	= {};
+			copyDesc.SrcBuffer			= pStaginingBuffer->GetBuffer();
+			copyDesc.DstBuffer			= pVertexBuffer->GetBuffer();
+			copyDesc.SrcOffset			= 0;
+			copyDesc.DstOffset			= 0;
+			copyDesc.Size				= vertexDataSize;
+			pResourceCopyCmdBuffer->CopyResource(copyDesc);
+		}
 
-		pRHI->ExecuteCommandBuffer(pResourceCopyCmdBuffer1, pResourceCopyFence);
-		pResourceCopyFence->Wait();
+		// Copy Index Buffer data
+		{
+			RHIBufferCopyDesc copyDesc = {};
+			copyDesc.SrcBuffer = pStaginingBuffer->GetBuffer();
+			copyDesc.DstBuffer = pIndexBuffer->GetBuffer();
+			copyDesc.SrcOffset = vertexDataSize;
+			copyDesc.DstOffset = 0;
+			copyDesc.Size = indexDataSize;
+			pResourceCopyCmdBuffer->CopyResource(copyDesc);
+		}
+
+		// Copy Texture's Image data
+		{
+			RHIBufferToTextureCopyDesc copyDesc = {};
+			copyDesc.pSrcBuffer		= pStaginingBuffer->GetBuffer();
+			copyDesc.pDstTexture	= pAmazingTexture->GetTextureResource();
+			copyDesc.SrcOffset		= indexDataSize + vertexDataSize;
+			copyDesc.Size			= amazingTextureSize;
+			copyDesc.Width			= pAmazingTexture->GetWidth();
+			copyDesc.Height			= pAmazingTexture->GetHeight();
+
+			pResourceCopyCmdBuffer->CopyResource(copyDesc);
+		}
+
+		pResourceCopyCmdBuffer->End();
+
+		pRHI->ExecuteCommandBuffer(pResourceCopyCmdBuffer, pResourceCopyFence);
 		
-		pResourceCopyFence->Reset();
-		
-		pRHI->ExecuteCommandBuffer(pResourceCopyCmdBuffer2, pResourceCopyFence);
 		pResourceCopyFence->Wait();
 
-
-		delete pResourceCopyFence;
-		delete pResourceCopyCmdBuffer1, pResourceCopyCmdBuffer2;
+		// delete pResourceCopyFence;
+		delete pResourceCopyCmdBuffer;
 	}
 
 	// Create uniform buffer object, and binds a memory to that buffer
 	{
-		pMvpUB = pRHI->CreateUniformBuffer(sizeof(MvpUniform));
+ 		pMvpUB = pRHI->CreateUniformBuffer(sizeof(MvpUniform));
 
-		MvpUniform ubo{};
-		ubo.Model = glm::mat4x4(1);
-		ubo.View = glm::mat4x4(1);
-		ubo.Proj = glm::mat4x4(1);
-		// ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		// ubo.Proj = glm::perspective(glm::radians(45.0f), (float)1600 / (float)720, 0.1f, 10.0f);
+		MvpData.Model = glm::mat4x4(1);
+		MvpData.View = glm::lookAt(glm::vec3(2.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		MvpData.Proj = glm::perspective(glm::radians(45.0f), (float)1600 / (float)720, 0.1f, 10.0f);
 
-		pMvpUB->SetData(sizeof(ubo), &ubo);
-		// pMvpUB->Bind(&pMvpData);
-		// pMaterialUB->Bind(&pMaterialData);
+		pMvpUB->SetData(sizeof(MvpUniform), &MvpData);
 	}
 
 	// Bind a uniform buffer with a descriptor
 	{
 		pDescriptorSet->BindUiformBuffer(0, pMvpUB);
+		pDescriptorSet->BindTexture(1, pAmazingTexture, pSampler);
 	}
 
 	// Records command buffers
@@ -176,14 +276,13 @@ void SandboxRHI::OnAttach()
 
 	ppCommandBuffers = reinterpret_cast<RHICommandBuffer**>(malloc(back_buffers_count));
 	
-	for (int i = 0; i < back_buffers_count; i++)
+	for (uint32_t i = 0; i < back_buffers_count; i++)
 	{
 		ppCommandBuffers[i] = pRHI->AllocateCommandBuffer();
-
 		RHICommandBuffer* pCmdBuffer = ppCommandBuffers[i];
 		
 		pCmdBuffer->Begin();
-		pCmdBuffer->BeginFrame(ppFrameBuffers[i], { 1.0f, 1.0f, 1.0f, 1.0f});
+		pCmdBuffer->BeginFrame(ppFrameBuffers[i], { 0.3f, 0.6f, 0.9f, 1.0f});
 		pCmdBuffer->BindGraphicsPipelineState(pGraphicsPipelineState);
 		pCmdBuffer->BindDescriptorSets(pPipelineLayout, pDescriptorSet);
 		pCmdBuffer->Draw(pVertexBuffer, pIndexBuffer);
@@ -195,7 +294,7 @@ void SandboxRHI::OnAttach()
 
 void SandboxRHI::OnDetach()
 {
-	HZ_INFO("SandboxRHI Application layer is Dettached, and destroyed");
+	HZ_INFO("SandboxRHI Application layer is dettached, and destroyed");
 	pRHI->OnShutdown();
 }
 
@@ -203,14 +302,31 @@ void SandboxRHI::OnUpdate(Hazel::Timestep ts)
 {
 	// s_pRenderdoc_api->StartFrameCapture(NULL, NULL);
 	uint32_t currentFrameIndex = pSwapChain->GetCurrentFrameIndex();
+	pSwapChain->SwapBuffers();
 	pRHI->ExecuteCommandBuffer(ppCommandBuffers[currentFrameIndex]);
+	pSwapChain->Present();
+
 	pRHI->OnUpdate();
+
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	glm::vec3 eye;
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	MvpData.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	pMvpUB->SetData(sizeof(MvpData), &MvpData);
+
 	// s_pRenderdoc_api->EndFrameCapture(NULL, NULL);
+
 }
 
 void SandboxRHI::OnImGuiRender()
 {
-	HZ_ERROR("ImGui is not yet implemented OnImGuiRender");
+	// ImGui::Begin("Hello, World!");
+	// ImGui::Text("I'm ImGui :)");
+	// ImGui::End();
 }
 
 void SandboxRHI::OnEvent(Hazel::Event& e)

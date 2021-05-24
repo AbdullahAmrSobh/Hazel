@@ -56,6 +56,7 @@ namespace Hazel {
 	{
 	public:
 		virtual void BindUiformBuffer(uint32_t binding, const class RHIUniformBuffer* pBuffer) = 0;
+		virtual void BindTexture(uint32_t binding, const class RHITexture2D* pTexture, const class RHISampler* pSampler) = 0;
 
 	};
 

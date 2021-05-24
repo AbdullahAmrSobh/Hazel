@@ -24,6 +24,29 @@ namespace Hazel {
 		size_t		Size;
 	};
 
+	struct RHITextureCopyDesc
+	{
+		RHITexture* pSrcTexture;
+		RHITexture* pDstTexture;
+		uint32_t Width;
+		uint32_t Height;
+	};
+
+
+	struct RHITextureToBufferCopyDesc
+	{
+
+	};
+
+	struct RHIBufferToTextureCopyDesc
+	{
+		RHITexture*		pDstTexture;
+		RHIBuffer*		pSrcBuffer;
+		size_t			SrcOffset;
+		size_t			Size;
+		uint32_t		Width;
+		uint32_t		Height;
+	};
 
 
 	class RHICommandBuffer : public RHIObject
@@ -34,7 +57,7 @@ namespace Hazel {
 		virtual void End() = 0;
 		
 		// Frame
-		virtual void BeginFrame(const RHIFrameBuffer* pTargetFrameBuffer, const RHIColor clearColor = {0.5f, 0.7f, 0.9f, 1.0f}) = 0;
+		virtual void BeginFrame(const RHIFrameBuffer* pTargetFrameBuffer, const RHIColor clearColor = {1.0f, 1.0f, 1.0f, 1.0f}) = 0;
 		virtual void EndFrame() = 0;
 		
 		// Pipeline Binding
@@ -49,16 +72,27 @@ namespace Hazel {
 
 		// Resource copying and moving
 		virtual void CopyResource(const RHIBufferCopyDesc& copyDesc) = 0;
-		// virtual void CopyResource(const RHIImage* src,  const RHIImage*  pDst, size_t offset, size_t size) = 0;
-		// virtual void CopyResource(const RHIBuffer* src, const RHIImage*  pDst, size_t offset, size_t size) = 0;
-		// virtual void CopyResource(const RHIImage* src,  const RHIBuffer* pDst, size_t offset, size_t size) = 0;
+		virtual void CopyResource(const RHITextureCopyDesc& copyDesc) = 0;
+		virtual void CopyResource(const RHITextureToBufferCopyDesc& copyDesc) = 0;
+		virtual void CopyResource(const RHIBufferToTextureCopyDesc& copyDesc) = 0;
 
 		// Barriers
-
+		virtual void PipelineBarrier() = 0;
 		// virtual void CreateBarrier(const void* image) = 0;
 		// virtual void CreateBarrier(const void* buffer) = 0;
 		// virtual void CreateBarrier(const void* memory) = 0;
 
     };
+
+	class RHIGraphicsCommandBuffer;		// Binds a pipeline, and renders 
+	class RHIComputeCommandBuffer;		// Binds a pipeline,
+	class RHIResourceCommandBuffer;		// Move/Copy resources,
+
+	class RHICommandList
+	{
+	public:
+		std::vector<RHICommandBuffer*> pCommandBuffers;
+		class RHIFence* pFence;
+	};
 
 }

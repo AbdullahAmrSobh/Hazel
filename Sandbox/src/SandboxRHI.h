@@ -32,6 +32,7 @@ public:
 private:
 	RHI*									pRHI;
 	RHISwapChain*							pSwapChain;
+	// RHIFence*								pSwapFence;
 	RHIShaderCompiler*						pShaderFactory;
 	RHIFrameBuffer**						ppFrameBuffers;
 	RHIPipelineLayout*						pPipelineLayout;
@@ -39,14 +40,14 @@ private:
 	RHICommandBuffer**						ppCommandBuffers;
 	RHIDescriptorPool*						pDescriptorsPool;
 	RHIDescriptorSet*						pDescriptorSet;
-
-	// Buffers and resources
 	RHIStagingBuffer*						pStaginingBuffer;
 	RHIVertexBuffer*						pVertexBuffer;
 	RHIIndexBuffer*							pIndexBuffer;
+
+	RHISampler*								pSampler;
+	RHITexture2D*							pAmazingTexture;
+
+
 	RHIUniformBuffer*						pMvpUB;
-	// RHIUniformBuffer*						pMaterialUB;
-	// Uniform data
 	MvpUniform								MvpData;
-	// MaterialUniform*						pMaterialData;
 };

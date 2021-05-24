@@ -9,8 +9,15 @@ namespace Hazel {
 
 	class VulkanBuffer;
 
-	inline VulkanBuffer* AsVulkanBuffer(RHIBuffer* pBuffer) { return reinterpret_cast<VulkanBuffer*>(pBuffer); }
-	inline const VulkanBuffer* AsVulkanBuffer(const RHIBuffer* pBuffer) { return reinterpret_cast<const VulkanBuffer*>(pBuffer); }
+	inline VulkanBuffer* AsVulkanBuffer(RHIBuffer* pBuffer) 
+	{
+		return reinterpret_cast<VulkanBuffer*>(pBuffer);
+	}
+
+	inline const VulkanBuffer* AsVulkanBuffer(const RHIBuffer* pBuffer) 
+	{ 
+		return reinterpret_cast<const VulkanBuffer*>(pBuffer); 
+	}
 
 	class VulkanBuffer : public RHIBuffer
 	{
@@ -94,16 +101,58 @@ namespace Hazel {
 		const VulkanMemoryAllocator*	m_pAllocator;
 	};
 
+	class VulkanSampler : public RHISampler
+	{
+	public:
+		VulkanSampler(const VulkanDevice* pDevice, const VkSamplerCreateInfo& createInfo);
+		~VulkanSampler();
 
+		inline VkSampler GetHandle() const { return m_hSampler; }
 
+	private:
+		const VulkanDevice* m_pDevice;
+		VkSampler			m_hSampler;
+	};
 
+	class VulkanImage : public RHITexture
+	{
+	public:
+		VulkanImage(const VulkanDevice* pDevice, const VulkanMemoryAllocator* pAllocator);
+		VulkanImage(const VulkanDevice* pDevice, const VulkanMemoryAllocator* pAllocator, const VkImageCreateInfo& createInfo, const VmaAllocationCreateInfo& allocInfo);
+
+		~VulkanImage();
+
+		void Init(const VkImageCreateInfo& createInfo, const VmaAllocationCreateInfo& allocationInfo);
+
+		inline VkImage GetHandle() const { return m_hImage; }
+		inline VmaAllocation GetAllocation() const { return m_Allocation; }
+		inline VmaAllocationInfo GetInfo() const { return m_AllocationInfo; }
+
+	private:
+		const VulkanDevice* m_pDevice;
+		const VulkanMemoryAllocator* m_pAllocator;
+		VkImage							m_hImage;
+		VmaAllocation					m_Allocation;
+		VmaAllocationInfo				m_AllocationInfo;
+	};
+
+	class VulkanTexture2D : public RHITexture2D
+	{
+	public:
+		VulkanTexture2D(const VulkanDevice* pDevice, const VulkanMemoryAllocator* m_pAllocator, const RHITexture2DDesc& desc);
+		~VulkanTexture2D();
+
+		inline VkImageView GetHandle() const { return m_hView; }
+	private:
+		const VulkanDevice* m_pDevice;
+		const VulkanMemoryAllocator* m_pAllocator;
+		VkImageView m_hView;
+	};
 
 	class VulkanSemaphore
 	{
 	public:
-
 		VulkanSemaphore(const VulkanDevice* pDevice);
-
 		~VulkanSemaphore();
 
 		inline VkSemaphore GetHandle() const { return m_SemaphoreHandle; }

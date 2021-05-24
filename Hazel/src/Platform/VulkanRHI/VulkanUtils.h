@@ -63,50 +63,208 @@ namespace Hazel {
 		
 		static VkFormat GetFromat(const RHIFormat format)
 		{
+			
 			switch (format)
 			{
-			case RHIFormat::eFloat:  return VK_FORMAT_R32_SFLOAT;
-			case RHIFormat::eFloat2: return VK_FORMAT_R32G32_SFLOAT;
-			case RHIFormat::eFloat3: return VK_FORMAT_R32G32B32_SFLOAT;
-			case RHIFormat::eFloat4: return VK_FORMAT_R32G32B32A32_SFLOAT;
-		
-			case RHIFormat::eInt:  return VK_FORMAT_R32_SINT;
-			case RHIFormat::eInt2: return VK_FORMAT_R32G32_SINT;
-			case RHIFormat::eInt3: return VK_FORMAT_R32G32B32_SINT;
-			case RHIFormat::eInt4: return VK_FORMAT_R32G32B32A32_SINT;
-		
-			case RHIFormat::eUint:  return VK_FORMAT_R32_UINT;
-			case RHIFormat::eUint2: return VK_FORMAT_R32G32_UINT;
-			case RHIFormat::eUint3: return VK_FORMAT_R32G32B32_UINT;
-			case RHIFormat::eUint4: return VK_FORMAT_R32G32B32A32_UINT;
+			case RHIFormat::eSignedR32:			return VK_FORMAT_R32_SINT;
+			case RHIFormat::eSignedRG32:		return VK_FORMAT_R32G32_SINT;
+			case RHIFormat::eSignedRGB32:		return VK_FORMAT_R32G32B32_SINT;
+			case RHIFormat::eSignedRGBA32:		return VK_FORMAT_R32G32B32A32_SINT;
+			
+			case RHIFormat::eSignedR16:			return VK_FORMAT_R16_SINT;
+			case RHIFormat::eSignedRG16:		return VK_FORMAT_R16G16_SINT;
+			case RHIFormat::eSignedRGB16:		return VK_FORMAT_R16G16B16_SINT;
+			case RHIFormat::eSignedRGBA16:		return VK_FORMAT_R16G16B16A16_SINT;
+			
+			case RHIFormat::eSignedR8:			return VK_FORMAT_R8_SINT;
+			case RHIFormat::eSignedRG8:			return VK_FORMAT_R8G8_SINT;
+			case RHIFormat::eSignedRGB8:		return VK_FORMAT_R8G8B8_SINT;
+			case RHIFormat::eSignedRGBA8:		return VK_FORMAT_R8G8B8A8_SINT;
+			
+			case RHIFormat::eUnsignedR32:		return VK_FORMAT_R32_UINT;
+			case RHIFormat::eUnsignedRG32:		return VK_FORMAT_R32G32_UINT;
+			case RHIFormat::eUnsignedRGB32:		return VK_FORMAT_R32G32B32_UINT;
+			case RHIFormat::eUnsignedRGBA32:	return VK_FORMAT_R32G32B32A32_UINT;
+			
+			case RHIFormat::eUnsignedR16:		return VK_FORMAT_R16_UINT;
+			case RHIFormat::eUnsignedRG16:		return VK_FORMAT_R16G16_UINT;
+			case RHIFormat::eUnsignedRGB16:		return VK_FORMAT_R16G16B16_UINT;
+			case RHIFormat::eUnsignedRGBA16:	return VK_FORMAT_R16G16B16A16_UINT;
+			
+			case RHIFormat::eUnsignedR8:		return VK_FORMAT_R8_UINT;
+			case RHIFormat::eUnsignedRG8:		return VK_FORMAT_R8G8_UINT;
+			case RHIFormat::eUnsignedRGB8:		return VK_FORMAT_R8G8B8_UINT;
+			case RHIFormat::eUnsignedRGBA8:		return VK_FORMAT_R8G8B8A8_UINT;
+
+			case RHIFormat::eFloatR:			return VK_FORMAT_R32_SFLOAT;
+			case RHIFormat::eFloatRG:			return VK_FORMAT_R32G32_SFLOAT;
+			case RHIFormat::eFloatRGB:			return VK_FORMAT_R32G32B32_SFLOAT;
+			case RHIFormat::eFloatRGBA:			return VK_FORMAT_R32G32B32A32_SFLOAT;
+
+			case RHIFormat::eDoubleR:			return VK_FORMAT_R64_SFLOAT;
+			case RHIFormat::eDoubleRG:			return VK_FORMAT_R64G64_SFLOAT;
+			case RHIFormat::eDoubleRGB:			return VK_FORMAT_R64G64B64_SFLOAT;
+			case RHIFormat::eDoubleRGBA:		return VK_FORMAT_R64G64B64A64_SFLOAT;
+
+			case RHIFormat::eSRGB_R8:			return VK_FORMAT_R8_SRGB;
+			case RHIFormat::eSRGB_RG8:			return VK_FORMAT_R8G8_SRGB;
+			case RHIFormat::eSRGB_RGB8:			return VK_FORMAT_R8G8B8_SRGB;
+			case RHIFormat::eSRGB_RGBA8:		return VK_FORMAT_R8G8B8A8_SRGB;
+			
+			default:							return VK_FORMAT_MAX_ENUM;
 			}
 
-			return VK_FORMAT_UNDEFINED;
 		}
-		
-		static size_t FormatSize(const VkFormat format)
+
+		static size_t GetFormatSize(VkFormat format)
 		{
 			switch (format)
 			{
-			case VK_FORMAT_R32_SFLOAT:			return 1 * sizeof(float);
-			case VK_FORMAT_R32G32_SFLOAT:		return 2 * sizeof(float);
-			case VK_FORMAT_R32G32B32_SFLOAT:	return 3 * sizeof(float);
-			case VK_FORMAT_R32G32B32A32_SFLOAT: return 4 * sizeof(float);
+			case VK_FORMAT_R32_SINT:
+			case VK_FORMAT_R32_UINT:
+			case VK_FORMAT_R32_SFLOAT:
+				return 1 * 4;
 
-			case VK_FORMAT_R32_SINT:			return 1 * sizeof(int32_t);
-			case VK_FORMAT_R32G32_SINT:			return 2 * sizeof(int32_t);
-			case VK_FORMAT_R32G32B32_SINT:		return 3 * sizeof(int32_t);
-			case VK_FORMAT_R32G32B32A32_SINT:	return 4 * sizeof(int32_t);
+			case VK_FORMAT_R32G32_SINT:
+			case VK_FORMAT_R32G32_UINT:
+			case VK_FORMAT_R32G32_SFLOAT:
+				return 2 * 4;
 
-			case VK_FORMAT_R32_UINT:			return 1 * sizeof(uint32_t);
-			case VK_FORMAT_R32G32_UINT:			return 2 * sizeof(uint32_t);
-			case VK_FORMAT_R32G32B32_UINT:		return 3 * sizeof(uint32_t);
-			case VK_FORMAT_R32G32B32A32_UINT:	return 4 * sizeof(uint32_t);
+			case VK_FORMAT_R32G32B32_SINT:
+			case VK_FORMAT_R32G32B32_UINT:
+			case VK_FORMAT_R32G32B32_SFLOAT:
+				return 3 * 4;
+
+			case VK_FORMAT_R32G32B32A32_SINT:
+			case VK_FORMAT_R32G32B32A32_UINT:
+			case VK_FORMAT_R32G32B32A32_SFLOAT:
+				return 4 * 4;
+
+			case VK_FORMAT_R16_SINT:
+			case VK_FORMAT_R16_UINT:
+				return 1 * 2;
+
+			case VK_FORMAT_R16G16_SINT:
+			case VK_FORMAT_R16G16_UINT:
+				return 2 * 2;
+
+			case VK_FORMAT_R16G16B16_SINT:
+			case VK_FORMAT_R16G16B16_UINT:
+				return 3 * 2;
+
+			case VK_FORMAT_R16G16B16A16_SINT:
+			case VK_FORMAT_R16G16B16A16_UINT:
+				return 4 * 2;
+
+			case VK_FORMAT_R8_SINT:
+			case VK_FORMAT_R8_UINT:
+				return 1 * 1;
+
+			case VK_FORMAT_R8G8_SINT:
+			case VK_FORMAT_R8G8_UINT:
+				return 2 * 1;
+
+			case VK_FORMAT_R8G8B8_SINT:
+			case VK_FORMAT_R8G8B8_UINT:
+				return 3 * 1;
+
+			case VK_FORMAT_R8G8B8A8_SINT:
+			case VK_FORMAT_R8G8B8A8_UINT:
+				return 4 * 1;
+
+			case VK_FORMAT_R64_SFLOAT:
+				return 1 * 8;
+			case VK_FORMAT_R64G64_SFLOAT:
+				return 2 * 8;
+			case VK_FORMAT_R64G64B64_SFLOAT:
+				return 3 * 8;
+			case VK_FORMAT_R64G64B64A64_SFLOAT:
+				return 4 * 8;
+
+			default: return SIZE_MAX;
 			}
-
-			return SIZE_MAX;
 		}
 		
+		static VkFilter GetFilter(const RHIFilter filter)
+		{
+			switch (filter)
+			{
+			case RHIFilter::eNearest: return VK_FILTER_NEAREST;
+			case RHIFilter::eLinear: return VK_FILTER_LINEAR;
+			default: return VK_FILTER_MAX_ENUM;
+			}
+		}
+
+		static VkSamplerMipmapMode GetMipmapMode(const RHIFilter filter)
+		{
+			switch (filter)
+			{
+			case RHIFilter::eNearest:	return	VK_SAMPLER_MIPMAP_MODE_NEAREST;
+			case RHIFilter::eLinear:	return	VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			default:					return	VK_SAMPLER_MIPMAP_MODE_MAX_ENUM;
+			}
+		}
+
+		static VkSamplerAddressMode GetAddressMode(const RHITextureAddressMode mode)
+		{
+			switch (mode)
+			{
+			case RHITextureAddressMode::eRepeat:				return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			case RHITextureAddressMode::eMirroredRepeat:		return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+			case RHITextureAddressMode::eClampToEdge:			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+			case RHITextureAddressMode::eClampToBorder:			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+			case RHITextureAddressMode::eMirroredClampToEdge:	return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
+			default:											return VK_SAMPLER_ADDRESS_MODE_MAX_ENUM;
+			}
+		}
+
+		static VkCompareOp GetCompareOp(const RHIComparsionOperation op)
+		{
+			switch (op)
+			{
+
+			case RHIComparsionOperation::eNever:		 return VK_COMPARE_OP_NEVER;
+			case RHIComparsionOperation::eLess:			 return VK_COMPARE_OP_LESS;
+			case RHIComparsionOperation::eEqual:		 return VK_COMPARE_OP_EQUAL;
+			case RHIComparsionOperation::eLessOrEqual:	 return VK_COMPARE_OP_LESS_OR_EQUAL;
+			case RHIComparsionOperation::eGreater:		 return VK_COMPARE_OP_GREATER;
+			case RHIComparsionOperation::eNotEqual:		 return VK_COMPARE_OP_NOT_EQUAL;
+			case RHIComparsionOperation::eGreaterOrEqual :return VK_COMPARE_OP_GREATER_OR_EQUAL;
+			case RHIComparsionOperation::eAlways:		 return VK_COMPARE_OP_ALWAYS;
+			default:									 return VK_COMPARE_OP_MAX_ENUM;
+			}
+
+		}
+
+		static VkSampleCountFlagBits GetSampleCount(uint32_t count)
+		{
+			switch (count)
+			{
+			case 1:  return VK_SAMPLE_COUNT_1_BIT;
+			case 2:  return VK_SAMPLE_COUNT_2_BIT;
+			case 4:  return VK_SAMPLE_COUNT_4_BIT;
+			case 8:  return VK_SAMPLE_COUNT_8_BIT;
+			case 16: return VK_SAMPLE_COUNT_16_BIT;
+			case 32: return VK_SAMPLE_COUNT_32_BIT;
+			default: 
+				HZ_CORE_ERROR("Invalid count, count must be a multiple of 2");
+				return VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
+			}
+		}
+
+		static VkBorderColor GetBorderColor(const RHISamplerBorderColor borderColor)
+		{
+			switch (borderColor)
+			{
+			case RHISamplerBorderColor::eFloatTransparentBlack:		   return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+			case RHISamplerBorderColor::eIntTransparentBlack:		   return VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
+			case RHISamplerBorderColor::eFloatOpaqueBlack:			   return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+			case RHISamplerBorderColor::eIntOpaqueBlack:			   return VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+			case RHISamplerBorderColor::eFloatOpaqueWhite:			   return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+			case RHISamplerBorderColor::eIntOpaqueWhite:			   return VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+			default:								                   return VK_BORDER_COLOR_MAX_ENUM;
+			}
+		}
 
 	}
 

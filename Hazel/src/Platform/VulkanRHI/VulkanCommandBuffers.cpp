@@ -89,19 +89,15 @@ namespace Hazel {
 
 		const VulkanFrameBuffer* pTargetFrameBuffer_v = reinterpret_cast<const VulkanFrameBuffer*>(pTargetFrameBuffer);
 		
-		AddWaitSemaphore(pTargetFrameBuffer_v->GetImageAvailableSemaphore());
+		AddWaitSemaphore(pTargetFrameBuffer_v->GetImageAvailableSemaphore().GetHandle());
 
 		VkRect2D renderArea = {};
 		renderArea.offset	= { 0, 0 };
 		renderArea.extent	= { pTargetFrameBuffer_v->GetWidth(), pTargetFrameBuffer_v->GetHeight() };
 
-		VkClearValue clearValue			= {};
-		clearValue.color.float32[0]		= 0.4f;
-		clearValue.color.float32[1]		= 0.3f;
-		clearValue.color.float32[2]		= 0.5f;
-		clearValue.color.float32[3]		= 1.0f;
-		clearValue.depthStencil.depth	= 0.0f;
-		clearValue.depthStencil.stencil = 0;
+		std::vector<VkClearValue> clearValues = { { clearColor.R, clearColor.G, clearColor.B, clearColor.A  } };
+		// clearValues[0].depthStencil.depth	= 0.0f;
+		// clearValues[0].depthStencil.stencil = 0;
 
 		VkRenderPassBeginInfo beginInfo = {};
 		beginInfo.sType					= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -109,8 +105,8 @@ namespace Hazel {
 		beginInfo.renderPass			= pTargetFrameBuffer_v->GetRenderPass()->GetHandle();
 		beginInfo.framebuffer			= pTargetFrameBuffer_v->GetHandle();
 		beginInfo.renderArea			= renderArea;
-		beginInfo.clearValueCount		= 1;
-		beginInfo.pClearValues			= &clearValue;
+		beginInfo.clearValueCount		= clearValues.size();
+		beginInfo.pClearValues			= clearValues.data();
 		
 		vkCmdBeginRenderPass(m_CommandBufferHandle, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 	}
@@ -168,12 +164,78 @@ namespace Hazel {
 
 		copyInfo.srcOffset = copyDesc.SrcOffset;
 		copyInfo.dstOffset = copyDesc.DstOffset;
-		copyInfo.size = copyDesc.Size;
+		copyInfo.size		= copyDesc.Size;
 
 		VkBuffer srcBuffer = reinterpret_cast<VulkanBuffer*>(copyDesc.SrcBuffer)->GetHandle();
 		VkBuffer dstBuffer = reinterpret_cast<VulkanBuffer*>(copyDesc.DstBuffer)->GetHandle();
 
 		vkCmdCopyBuffer(m_CommandBufferHandle, srcBuffer, dstBuffer, 1, &copyInfo);
+	}
+
+	void VulkanCommandBuffer::CopyResource(const RHITextureCopyDesc& copyDesc)
+	{
+		HZ_CORE_ASSERT(false, "This method is not implemented yet");
+	}
+
+	void VulkanCommandBuffer::CopyResource(const RHITextureToBufferCopyDesc& copyDesc)
+	{
+		HZ_CORE_ASSERT(false, "This method is not implemented yet");
+	}
+
+	void VulkanCommandBuffer::CopyResource(const RHIBufferToTextureCopyDesc& copyDesc)
+	{
+		VkBuffer srcBuffer = reinterpret_cast<const VulkanBuffer*>(copyDesc.pSrcBuffer)->GetHandle();
+		VkImage	 dstImage = reinterpret_cast<VulkanImage*>(copyDesc.pDstTexture)->GetHandle();
+
+		VkImageSubresourceRange subresourceRange = {};
+		// Image only contains color data
+		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		// Start at first mip level
+		subresourceRange.baseArrayLayer = 0;
+		// We will transition on all mip levels
+		subresourceRange.levelCount = 1;
+		// The 2D texture only has one layer
+		subresourceRange.layerCount = 1;
+		subresourceRange.baseMipLevel = 0;
+
+		VkImageMemoryBarrier barrier{};
+		barrier.sType								= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.pNext								= nullptr;
+		barrier.srcAccessMask						= 0;
+		barrier.dstAccessMask						= VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.oldLayout							= VK_IMAGE_LAYOUT_UNDEFINED;
+		barrier.newLayout							= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.srcQueueFamilyIndex					= VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex					= VK_QUEUE_FAMILY_IGNORED;
+		barrier.image								= dstImage;
+		barrier.subresourceRange					= subresourceRange;
+
+		vkCmdPipelineBarrier(m_CommandBufferHandle, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+		VkBufferImageCopy imageCopy					= {};
+		imageCopy.bufferOffset						= copyDesc.SrcOffset;
+		imageCopy.bufferRowLength					= 0;
+		imageCopy.bufferImageHeight					= 0;
+		imageCopy.imageSubresource.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+		imageCopy.imageSubresource.baseArrayLayer	= 0;
+		imageCopy.imageSubresource.layerCount		= 1;
+		imageCopy.imageSubresource.mipLevel			= 0;
+		imageCopy.imageOffset						= { 0, 0, 0 };
+		imageCopy.imageExtent						= { copyDesc.Width, copyDesc.Height, 1 };
+
+		vkCmdCopyBufferToImage(m_CommandBufferHandle, srcBuffer, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageCopy);
+
+		barrier.srcAccessMask					= VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask					= VK_ACCESS_SHADER_READ_BIT;
+		barrier.oldLayout						= VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout						= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		vkCmdPipelineBarrier(m_CommandBufferHandle, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	}
+
+	void VulkanCommandBuffer::PipelineBarrier()
+	{
+
 	}
 
 

@@ -3,6 +3,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include <stb_image.h>
+
 namespace Hazel {
 	
 	class VulkanQueue;

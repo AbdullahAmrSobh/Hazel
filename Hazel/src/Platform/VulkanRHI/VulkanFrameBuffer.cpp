@@ -55,6 +55,7 @@ namespace Hazel {
 		, m_pRenderPass(pRenderPass)
 		, m_ImageHandle(imageHandle)
 		, m_Views(attachments)
+		, m_FrameAvailableSemaphore(pDevice)
 	{
 		VkFramebufferCreateInfo createInfo = {};
 		createInfo.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -68,10 +69,6 @@ namespace Hazel {
 		createInfo.layers			= 1;
 
 		VK_CHECK_RESULT(vkCreateFramebuffer(pDevice->GetHandle(), &createInfo, nullptr, &m_FrameBufferHandle), "Failed to create a framebuffer");
-	
-		m_Semaphores.push_back(new VulkanSemaphore(m_pDevice));
-		m_ImageAvailableSemaphore = ( *m_Semaphores.begin() )->GetHandle();
-
 	}
 
 	VulkanFrameBuffer::~VulkanFrameBuffer()

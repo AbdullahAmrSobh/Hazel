@@ -5,79 +5,201 @@
 
 namespace Hazel {
 
-	using RHIColor = std::array<float, 4>;
-
 	enum class RHIResult
 	{
 		eSuccess,
 		eFailed,
 	};
 
-	enum class RHIImageFormat
-	{
-		eR32,
-		eRG32,
-		eRGB32,
-		eRGBA32,
-	};
-	
 	enum class RHIFormat
 	{
-		eFloat,
-		eFloat2,
-		eFloat3,
-		eFloat4,
+		eSignedR32,
+		eSignedRG32,
+		eSignedRGB32,
+		eSignedRGBA32,
 
-		eInt,
-		eInt2,
-		eInt3,
-		eInt4,
+		eSignedR16,
+		eSignedRG16,
+		eSignedRGB16,
+		eSignedRGBA16,
 
-		eUint,
-		eUint2,
-		eUint3,
-		eUint4,
+		eSignedR8,
+		eSignedRG8,
+		eSignedRGB8,
+		eSignedRGBA8,
+
+		eUnsignedR32,
+		eUnsignedRG32,
+		eUnsignedRGB32,
+		eUnsignedRGBA32,
+
+		eUnsignedR16,
+		eUnsignedRG16,
+		eUnsignedRGB16,
+		eUnsignedRGBA16,
+
+		eUnsignedR8,
+		eUnsignedRG8,
+		eUnsignedRGB8,
+		eUnsignedRGBA8,
+
+		eFloatR,
+		eFloatRG,
+		eFloatRGB,
+		eFloatRGBA,
+
+		eDoubleR,
+		eDoubleRG,
+		eDoubleRGB,
+		eDoubleRGBA,
+
+		// Added 
+		eSRGB_R8,
+		eSRGB_RG8,
+		eSRGB_RGB8,
+		eSRGB_RGBA8,
 	};
 
-	inline size_t GetSize(RHIFormat format)
+	enum class RHIFilter
 	{
+		eUndefined,
+		eNearest,
+		eLinear,
+	};
 
+	enum class RHITextureAddressMode
+	{
+		eUndefined,
+		eRepeat,
+		eMirroredRepeat,
+		eClampToEdge,
+		eClampToBorder,
+		eMirroredClampToEdge,
+	};
+
+	enum class RHIComparsionOperation
+	{
+		eUndefined,
+		eNever,
+		eLess,
+		eEqual,
+		eLessOrEqual,
+		eGreater,
+		eNotEqual,
+		eGreaterOrEqual,
+		eAlways,
+	};
+
+	enum class RHISamplerBorderColor
+	{
+		eFloatTransparentBlack,
+		eIntTransparentBlack,
+		eFloatOpaqueBlack,
+		eIntOpaqueBlack,
+		eFloatOpaqueWhite,
+		eIntOpaqueWhite,
+		eUndefined
+	};
+
+	inline size_t GetFormatSize(RHIFormat format)
+	{
 		switch (format)
 		{
-		case RHIFormat::eFloat:
-			return 1 * sizeof(float);
-		case RHIFormat::eFloat2:
-			return 2 * sizeof(float);
-		case RHIFormat::eFloat3:
-			return 3 * sizeof(float);
-		case Hazel::RHIFormat::eFloat4:
-			return 4 * sizeof(float);
+		case RHIFormat::eSignedR32:			return 1 * sizeof(int32_t);
+		case RHIFormat::eSignedRG32:		return 2 * sizeof(int32_t);
+		case RHIFormat::eSignedRGB32:		return 3 * sizeof(int32_t);
+		case RHIFormat::eSignedRGBA32:		return 4 * sizeof(int32_t);
+
+		case RHIFormat::eSignedR16:			return 1 * sizeof(int16_t);
+		case RHIFormat::eSignedRG16:		return 2 * sizeof(int16_t);
+		case RHIFormat::eSignedRGB16:		return 3 * sizeof(int16_t);
+		case RHIFormat::eSignedRGBA16:		return 4 * sizeof(int16_t);
 		
-		case RHIFormat::eInt:
-			return 1 * sizeof(int);
-		case RHIFormat::eInt2:
-			return 2 * sizeof(int);
-		case RHIFormat::eInt3:
-			return 3 * sizeof(int);
-		case Hazel::RHIFormat::eInt4:
-			return 4 * sizeof(int);
+		case RHIFormat::eSignedR8:			return 1 * sizeof(int8_t);
+		case RHIFormat::eSignedRG8:			return 2 * sizeof(int8_t);
+		case RHIFormat::eSignedRGB8:		return 3 * sizeof(int8_t);
+		case RHIFormat::eSignedRGBA8:		return 4 * sizeof(int8_t);
+		
+		case RHIFormat::eUnsignedR32:		return 1 * sizeof(uint32_t);
+		case RHIFormat::eUnsignedRG32:		return 2 * sizeof(uint32_t);
+		case RHIFormat::eUnsignedRGB32:		return 3 * sizeof(uint32_t);
+		case RHIFormat::eUnsignedRGBA32:	return 4 * sizeof(uint32_t);
+															  
+		case RHIFormat::eUnsignedR16:		return 1 * sizeof(uint16_t);
+		case RHIFormat::eUnsignedRG16:		return 2 * sizeof(uint16_t);
+		case RHIFormat::eUnsignedRGB16:		return 3 * sizeof(uint16_t);
+		case RHIFormat::eUnsignedRGBA16:	return 4 * sizeof(uint16_t);
+															  
+		case RHIFormat::eUnsignedR8:		return 1 * sizeof(uint8_t);
+		case RHIFormat::eUnsignedRG8:		return 2 * sizeof(uint8_t);
+		case RHIFormat::eUnsignedRGB8:		return 3 * sizeof(uint8_t);
+		case RHIFormat::eUnsignedRGBA8:		return 4 * sizeof(uint8_t);
 
-		case RHIFormat::eUint:
-			return 1 * sizeof(uint32_t);
-		case RHIFormat::eUint2:
-			return 2 * sizeof(uint32_t);
-		case RHIFormat::eUint3:
-			return 3 * sizeof(uint32_t);
-		case RHIFormat::eUint4:
-			return 4 * sizeof(uint32_t);
+		case RHIFormat::eFloatR:			return 1 * sizeof(float);
+		case RHIFormat::eFloatRG:			return 2 * sizeof(float);
+		case RHIFormat::eFloatRGB:			return 3 * sizeof(float);
+		case RHIFormat::eFloatRGBA:			return 4 * sizeof(float);
 
-		default:
-			HZ_CORE_ASSERT("invalid size");
-			return SIZE_MAX;
+		case RHIFormat::eDoubleR:			return 1 * sizeof(double);
+		case RHIFormat::eDoubleRG:			return 2 * sizeof(double);
+		case RHIFormat::eDoubleRGB:			return 3 * sizeof(double);
+		case RHIFormat::eDoubleRGBA:		return 4 * sizeof(double);
+		
+		default:							return SIZE_MAX;
+		
 		}
-
-		return SIZE_MAX;
 	}
+
+	struct RHIColor
+	{
+		float R;
+		float G;
+		float B;
+		float A;
+	};
+
+	struct RHIViewport
+	{
+		uint32_t	OffsetX;
+		uint32_t	OffsetY;
+		uint32_t	Width;
+		uint32_t	Height;
+		float		MinDepth;
+		float		MaxDepth;
+	};
+
+	struct RHIReact2D
+	{
+		uint32_t OffsetX;
+		uint32_t OffsetY;
+		uint32_t Width;
+		uint32_t Height;
+	};
+
+	struct RHISamplerDesc
+	{
+		RHIFilter					Filter;
+		RHITextureAddressMode		AddressU;
+		RHITextureAddressMode		AddressV;
+		RHITextureAddressMode		AddressW;
+		float						MipLODBias;
+		uint32_t                    MaxAnisotropy;
+		RHIComparsionOperation      ComparisonFunc;
+		float						BorderColor[4];
+		float						MinLOD;
+		float						MaxLOD;
+		RHISamplerBorderColor		Border;
+	};
+
+	struct RHITexture2DDesc
+	{
+		uint32_t	MipLevels;
+		RHIFormat	Format;
+		uint32_t	Width;
+		uint32_t	Height;
+		uint32_t	SampleCount;
+		uint32_t	SampleQaulity;
+	};
 
 	struct RHIVertexAttribute
 	{
@@ -90,40 +212,56 @@ namespace Hazel {
 		RHIVertexBufferLayout(const std::initializer_list<RHIVertexAttribute> attributes)
 			: Attributes(attributes), Stride(0)
 		{
-			for (auto a : attributes)
-				Stride += GetSize(a.Format);
+			for (auto a : attributes) Stride += GetFormatSize(a.Format);
 		}
 
 		std::vector<RHIVertexAttribute> Attributes;
 		size_t Stride;
 	};
 
-	struct RHIViewport
-	{
-		uint32_t OffsetX = 0;
-		uint32_t OffsetY = 0;
-		uint32_t Width;
-		uint32_t Height;
-		float MinDepth = 0.0f;
-		float MaxDepth = 1.0f;
-	};
-
-	struct RHIReact2D
-	{
-		uint32_t OffsetX = 0;
-		uint32_t OffsetY = 0;
-		uint32_t Width;
-		uint32_t Height;
-	};
-
-	class RHIBuffer : private NonCopyable
+	class RHIBuffer
 	{
 	public:
+
 		inline size_t GetSize() const { return m_BufferSize; }
 
 	protected:
 		size_t m_BufferSize;
 
+	};
+
+	class RHITexture 
+	{ 
+	public:
+		inline size_t GetSize() const { return m_ImageSize; }
+
+	protected:
+		size_t m_ImageSize;
+
+	};
+
+	class RHISampler
+	{
+
+	};
+
+	class RHITexture2D  
+	{ 
+	public:
+		RHITexture2D(uint32_t width, uint32_t height) 
+			: m_Width(width)
+			, m_Height(height)
+		{}
+
+		inline RHITexture* GetTextureResource() const { return m_pTexture; }
+
+		inline uint32_t GetWidth() const { return m_Width; }
+		inline uint32_t GetHeight() const { return m_Height; }
+
+	protected:
+		uint32_t	m_Width;
+		uint32_t	m_Height;
+		RHITexture* m_pTexture = nullptr;
 	};
 
 	class RHIBufferResourceBase
@@ -141,14 +279,7 @@ namespace Hazel {
 	public:
 		virtual void* Lock(size_t offset, size_t size) = 0;
 		virtual void Unlock() = 0;
-		
-		inline void CopyData(size_t srcSize, const void* pSrcData, size_t offset)
-		{
-			void* target = Lock(offset, srcSize);
-			// uint32_t* pOffsetedTargetData = & reinterpret_cast<uint32_t*>(target)[offset];
-			memcpy(target, pSrcData, srcSize);
-			Unlock();
-		}
+
 	};
 
 	class RHIVertexBuffer : public RHIBufferResourceBase
@@ -178,6 +309,7 @@ namespace Hazel {
 	{
 	public:
 		virtual void SetData(size_t dataSize, const void* pData) = 0;
+
 	};
 
 	class RHIFence
@@ -186,6 +318,7 @@ namespace Hazel {
 		virtual void Reset() = 0;
 		virtual void Wait() = 0;
 		virtual bool GetFenceStatus() = 0;
+
 	};
 
 }

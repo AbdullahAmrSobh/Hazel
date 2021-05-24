@@ -8,6 +8,10 @@ namespace Hazel
 	struct RHIDescriptorSetLayoutDesc;
 	struct RHIGraphicsPipelineStateDesc;
 
+	struct RHISamplerDesc;
+	struct RHITexture2DDesc;
+
+	class RHICommandList;
 	class RHISwapChain;
 	class RHIShaderCompiler;
 	class RHIFence;
@@ -20,6 +24,10 @@ namespace Hazel
 	class RHIVertexBuffer;
 	class RHIIndexBuffer;
 
+	class RHISampler;
+	class RHITexture2D;
+
+
 	enum class RHIBackend
 	{
 		eNone,
@@ -27,10 +35,16 @@ namespace Hazel
 		eD3D12,
 	};
 
+	struct RHIDesc
+	{
+
+	};
+
 	class RHI : private NonCopyable
 	{
 	public:
 		static RHI* CreateRHI(class Window* pWindow);
+		// static Scope<RHI> CreateRHI(const RHIDesc& desc);
 	
 		inline RHIBackend GetRHIBackend() const { return m_Backend; }
 		inline Window* GetWindow() const { return m_pWindow; }
@@ -58,11 +72,17 @@ namespace Hazel
 
 		virtual RHICommandBuffer* AllocateCommandBuffer() = 0;	
 		virtual void ExecuteCommandBuffer(RHICommandBuffer* pCommandBuffer, RHIFence* pFence = nullptr) = 0;
+		// virtual void ExecuteCommandBuffer(uint32_t commandCount, RHICommandList* pCmdList, RHIFence* pFence = nullptr) = 0;
 
+		// Resources Creation
 		virtual RHIUniformBuffer* CreateUniformBuffer(size_t bufferSize) = 0;
 		virtual RHIStagingBuffer* CreateStagingBuffer(size_t bufferSize) = 0;
 		virtual RHIVertexBuffer* CreateVertexBuffer(uint32_t vertexCount, uint32_t stride) = 0;
 		virtual RHIIndexBuffer* CreateIndexBuffer(uint32_t indciesCount, uint32_t stride) = 0;
+
+		virtual RHISampler* CreateSampler(const RHISamplerDesc& desc) = 0;
+
+		virtual RHITexture2D* CreateTexture2D(const RHITexture2DDesc& desc) = 0;
 
 	protected:
 		Window* m_pWindow;

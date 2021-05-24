@@ -22,9 +22,8 @@ namespace Hazel {
 		
 		m_pRHI = RHI::CreateRHI(m_Window.get());
 
-		// ImGui is disabled until A new RendererAPI, and Renderer Backends are implemented
-		// m_ImGuiLayer = new ImGuiLayer();
-		// PushOverlay(m_ImGuiLayer);
+		m_ImGuiLayer = new ImGuiLayer(m_pRHI);
+		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application()
@@ -92,14 +91,14 @@ namespace Hazel {
 				}
 
 				// ImGui is disabled until A new RendererAPI, and Renderer Backends are implemented
-				// m_ImGuiLayer->Begin();
-				// {
-				// 	HZ_PROFILE_SCOPE("LayerStack OnImGuiRender");
-				// 
-				// 	for (Layer* layer : m_LayerStack)
-				// 		layer->OnImGuiRender();
-				// }
-				// m_ImGuiLayer->End();
+				m_ImGuiLayer->Begin();
+				{
+					HZ_PROFILE_SCOPE("LayerStack OnImGuiRender");
+				
+					for (Layer* layer : m_LayerStack)
+						layer->OnImGuiRender();
+				}
+				m_ImGuiLayer->End();
 			}
 
 			m_Window->OnUpdate();

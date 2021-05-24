@@ -58,7 +58,7 @@ namespace Hazel {
 			attributeDesc.format = VulkanUtils::GetFromat(attribute.Format);
 			attributeDesc.offset = bindingDesc.stride;
 
-			bindingDesc.stride += VulkanUtils::FormatSize(attributeDesc.format);
+			bindingDesc.stride += GetFormatSize(attribute.Format);
 
 			index++;
 
@@ -67,13 +67,13 @@ namespace Hazel {
 
 		VertexBindingDescriptions.push_back(bindingDesc);
 
-		CreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		CreateInfo.pNext = nullptr;
-		CreateInfo.flags = 0;
-		CreateInfo.vertexBindingDescriptionCount = VertexBindingDescriptions.size();
-		CreateInfo.pVertexBindingDescriptions = VertexBindingDescriptions.data();
-		CreateInfo.vertexAttributeDescriptionCount = VertexAttributeDescriptions.size();
-		CreateInfo.pVertexAttributeDescriptions = VertexAttributeDescriptions.data();
+		CreateInfo.sType							= VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		CreateInfo.pNext							= nullptr;
+		CreateInfo.flags							= 0;
+		CreateInfo.vertexBindingDescriptionCount	= VertexBindingDescriptions.size();
+		CreateInfo.pVertexBindingDescriptions		= VertexBindingDescriptions.data();
+		CreateInfo.vertexAttributeDescriptionCount	= VertexAttributeDescriptions.size();
+		CreateInfo.pVertexAttributeDescriptions		= VertexAttributeDescriptions.data();
 	}
 
 	VulkanPipelineInputAssemblyStateInitializer::VulkanPipelineInputAssemblyStateInitializer()

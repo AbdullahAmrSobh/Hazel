@@ -6,6 +6,7 @@
 namespace Hazel 
 {
 
+	struct RHITexture2DDesc;
 	struct  RHIDescriptorSetLayoutDesc;
 
 	class VulkanPhysicalDeviceProperties;
@@ -47,6 +48,10 @@ namespace Hazel
 		virtual RHIStagingBuffer* CreateStagingBuffer(size_t bufferSize) final override;
 		virtual RHIVertexBuffer* CreateVertexBuffer(uint32_t vertexCount, uint32_t stride) final override;
 		virtual RHIIndexBuffer* CreateIndexBuffer(uint32_t indciesCount, uint32_t stride) final override;
+
+		virtual RHISampler* CreateSampler(const RHISamplerDesc& desc) final override;
+
+		virtual RHITexture2D* CreateTexture2D(const RHITexture2DDesc& desc) final override;
 		 
 	private:
 		void InitInstance();

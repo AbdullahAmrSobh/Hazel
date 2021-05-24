@@ -147,6 +147,30 @@ namespace Hazel {
 		vkUpdateDescriptorSets(m_pDevice->GetHandle(), 1, &write, 0, nullptr);
 	}
 
+	void VulkanDescriptorSet::BindTexture(uint32_t binding, const RHITexture2D* pTexture, const RHISampler* pSampler)
+	{
+		const VulkanTexture2D* pVulkanTexture2D = reinterpret_cast<const VulkanTexture2D*>(pTexture);
+		const VulkanImage* pVulkanBuffer = reinterpret_cast<const VulkanImage*>(pVulkanTexture2D->GetTextureResource());
+		const VulkanSampler* pVulkanSampler = reinterpret_cast<const VulkanSampler*>(pSampler);
+		
+		VkDescriptorImageInfo imageInfo		= {};
+		imageInfo.sampler					= pVulkanSampler->GetHandle();
+		imageInfo.imageLayout				= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView					= pVulkanTexture2D->GetHandle();
+
+		VkWriteDescriptorSet write	= {};
+		write.sType					= VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		write.pNext					= nullptr;
+		write.dstSet				= m_Handle;
+		write.dstBinding			= binding;
+		write.dstArrayElement		= 0;
+		write.descriptorCount		= 1;
+		write.descriptorType		= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		write.pImageInfo			= &imageInfo;
+
+		vkUpdateDescriptorSets(m_pDevice->GetHandle(), 1, &write, 0, nullptr);
+	}
+
 
 
 }

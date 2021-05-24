@@ -51,12 +51,18 @@ namespace Hazel {
 		virtual void Draw(const RHIVertexBuffer* pVertexBuffer, const RHIIndexBuffer* pIndexBuffer) final override;
 
 		virtual void CopyResource(const RHIBufferCopyDesc& copyDesc) final override;
+		virtual void CopyResource(const RHITextureCopyDesc& copyDesc) final override;
+		virtual void CopyResource(const RHITextureToBufferCopyDesc& copyDesc) final override;
+		virtual void CopyResource(const RHIBufferToTextureCopyDesc& copyDesc) final override;
+
+		virtual void PipelineBarrier() final override;
 
 	private:
 		VulkanCommandAllocator* m_pAllocator;
 		VkCommandBuffer m_CommandBufferHandle;
 
 		std::vector<VkSemaphore> m_WaitSemaphores;
+
 	};
 
 }

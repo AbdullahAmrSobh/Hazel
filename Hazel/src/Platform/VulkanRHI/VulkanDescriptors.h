@@ -10,79 +10,79 @@
 
 namespace Hazel {
 	
-	class VulkanDevice;
-
-	namespace VulkanUtils
+namespace VulkanUtils
+{
+	static inline VkShaderStageFlags GetShaderStage(RHIPipelineShaderStage stage)
 	{
-		static inline VkShaderStageFlags GetShaderStage(RHIPipelineShaderStage stage)
-		{
-			return VK_SHADER_STAGE_ALL;
-		}
-
-		static inline VkDescriptorType GetDescriptorType(RHIDescriptorType type)
-		{
-			switch (type)
-			{
-			case Hazel::RHIDescriptorType::eUniformBuffer:
-				return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			}
-
-			HZ_CORE_ERROR("Unkowen descriptor type");
-
-			return VK_DESCRIPTOR_TYPE_MAX_ENUM;
-		}
-
-		static inline VkDescriptorPoolSize CalculateDescriptorPoolSize(const RHIDescriptorSetBindingDesc& binding)
-		{
-			VkDescriptorPoolSize size	= {};
-			size.type					= GetDescriptorType(binding.Type);
-			size.descriptorCount		= binding.Count;
-			return size;
-		}
-
-		static inline VkDescriptorSetLayoutBinding ConvertToDSLBinding(const RHIDescriptorSetBindingDesc& bindingSlot)
-		{
-			VkDescriptorSetLayoutBinding binding	= {};
-			binding.binding							= bindingSlot.Binding;
-			binding.descriptorType					= GetDescriptorType(bindingSlot.Type);
-			binding.descriptorCount					= bindingSlot.Count;
-			binding.stageFlags						= GetShaderStage(bindingSlot.Stage);
-			binding.pImmutableSamplers				= nullptr;
-
-			return binding;
-		}
-
-		static inline size_t CalculateHash(const std::vector<std::string>& strings)
-		{
-			std::hash<std::string> hasher{};
-
-			auto combineHash = [&](size_t base, const std::string& string)
-			{
-				size_t seed = base;
-				seed ^= hasher(string) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-				return seed;
-			};
-
-			size_t seed = 0;
-		
-			for (const auto& string : strings) seed += combineHash(seed, string);
-
-			return seed;
-		}
-
-		static inline size_t CalculateDSLBindingHash(const RHIDescriptorSetLayoutDesc& dslDesc)
-		{
-			std::vector<std::string> bindingNames;
-			bindingNames.reserve(dslDesc.LayoutBindings.size());
-
-			for (const auto& binding : dslDesc.LayoutBindings)
-				bindingNames.push_back(binding.BindingName);
-
-			size_t key = VulkanUtils::CalculateHash(bindingNames);
-
-			return key;
-		}
+		return VK_SHADER_STAGE_ALL;
 	}
+
+	static inline VkDescriptorType GetDescriptorType(RHIDescriptorType type)
+	{
+		switch (type)
+		{
+		case Hazel::RHIDescriptorType::eUniformBuffer:	return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		case Hazel::RHIDescriptorType::eTexture:		return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		}
+
+		HZ_CORE_ERROR("Unkowen descriptor type");
+
+		return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+	}
+
+	static inline VkDescriptorPoolSize CalculateDescriptorPoolSize(const RHIDescriptorSetBindingDesc& binding)
+	{
+		VkDescriptorPoolSize size	= {};
+		size.type					= GetDescriptorType(binding.Type);
+		size.descriptorCount		= binding.Count;
+		return size;
+	}
+
+	static inline VkDescriptorSetLayoutBinding ConvertToDSLBinding(const RHIDescriptorSetBindingDesc& bindingSlot)
+	{
+		VkDescriptorSetLayoutBinding binding	= {};
+		binding.binding							= bindingSlot.Binding;
+		binding.descriptorType					= GetDescriptorType(bindingSlot.Type);
+		binding.descriptorCount					= bindingSlot.Count;
+		binding.stageFlags						= GetShaderStage(bindingSlot.Stage);
+		binding.pImmutableSamplers				= nullptr;
+
+		return binding;
+	}
+
+	static inline size_t CalculateHash(const std::vector<std::string>& strings)
+	{
+		std::hash<std::string> hasher{};
+
+		auto combineHash = [&](size_t base, const std::string& string)
+		{
+			size_t seed = base;
+			seed ^= hasher(string) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			return seed;
+		};
+
+		size_t seed = 0;
+	
+		for (const auto& string : strings) seed += combineHash(seed, string);
+
+		return seed;
+	}
+
+	static inline size_t CalculateDSLBindingHash(const RHIDescriptorSetLayoutDesc& dslDesc)
+	{
+		std::vector<std::string> bindingNames;
+		bindingNames.reserve(dslDesc.LayoutBindings.size());
+
+		for (const auto& binding : dslDesc.LayoutBindings)
+			bindingNames.push_back(binding.BindingName);
+
+		size_t key = VulkanUtils::CalculateHash(bindingNames);
+
+		return key;
+	}
+}
+
+	class VulkanDevice;
 
 	class VulkanDescriptorsLayoutManager
 	{
@@ -93,8 +93,8 @@ namespace Hazel {
 		VkDescriptorSetLayout GetOrCreate(const RHIDescriptorSetLayoutDesc& dslDesc);
 
 	private:
-		const VulkanDevice* m_pDevice;
-		std::unordered_map<size_t, VkDescriptorSetLayout> m_DescriptorsMap;
+		const VulkanDevice*									m_pDevice;
+		std::unordered_map<size_t, VkDescriptorSetLayout>	m_DescriptorsMap;
 	};
 
 	class VulkanDescriptorPool : public RHIDescriptorPool
@@ -119,10 +119,11 @@ namespace Hazel {
 		void FreeDescriptorSet(VkDescriptorSet set);
 
 	private:
-		const VulkanDevice* m_pDevice;
+		const VulkanDevice*				m_pDevice;
 		VulkanDescriptorsLayoutManager* m_pManager;
-		VkDescriptorPool	m_Handle;
-		uint32_t			m_MaxSetsCount;
+		VkDescriptorPool				m_Handle;
+		uint32_t						m_MaxSetsCount;
+
 	};
 
 	class VulkanDescriptorSet : public RHIDescriptorSet
@@ -134,11 +135,12 @@ namespace Hazel {
 		inline VkDescriptorSet GetHandle() const { return m_Handle; }
 
 		virtual void BindUiformBuffer(uint32_t binding, const class RHIUniformBuffer* pBuffer) final override;
+		virtual void BindTexture(uint32_t binding, const class RHITexture2D* pTexture, const class RHISampler* pSampler) final override;
 
 	private:
-		const VulkanDevice* m_pDevice;
-		VulkanDescriptorPool* m_pParantPool;
-		VkDescriptorSet m_Handle;
+		const VulkanDevice*		m_pDevice;
+		VulkanDescriptorPool*	m_pParantPool;
+		VkDescriptorSet			m_Handle;
 
 	};
 	
