@@ -3,7 +3,6 @@ include "./vendor/premake/premake_customization/solution_items.lua"
 workspace "Hazel"
 	-- location "./build"
 	architecture "x86_64"
-	startproject "Hazelnut"
 
 	configurations
 	{
@@ -24,32 +23,28 @@ workspace "Hazel"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
-VulkanSDKVersion = "1.2.162.0"
+VulkanSDKLocation = os.getenv("VULKAN_SDK")
 
 -- Include directories relative to root folder (solution directory)
 IncludeDir = {}
 IncludeDir["GLFW"] = "%{wks.location}/Hazel/vendor/GLFW/include"
-IncludeDir["Glad"] = "%{wks.location}/Hazel/vendor/Glad/include"
 IncludeDir["ImGui"] = "%{wks.location}/Hazel/vendor/imgui"
 IncludeDir["glm"] = "%{wks.location}/Hazel/vendor/glm"
 IncludeDir["stb_image"] = "%{wks.location}/Hazel/vendor/stb_image"
 IncludeDir["entt"] = "%{wks.location}/Hazel/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "%{wks.location}/Hazel/vendor/yaml-cpp/include"
 IncludeDir["ImGuizmo"] = "%{wks.location}/Hazel/vendor/ImGuizmo"
-
-IncludeDir["Vulkan"] = "C:/VulkanSDK/%{VulkanSDKVersion}/Include"
+IncludeDir["Vulkan"] = "%{VulkanSDKLocation}/Include"
 
 LinkDir = {}
-LinkDir["VulkanSDKLib"] = "C:/VulkanSDK/%{VulkanSDKVersion}/Lib"
+LinkDir["VulkanSDKLib"] = "%{VulkanSDKLocation}/Lib"
 
 group "Dependencies"
 	include "vendor/premake"
 	include "Hazel/vendor/GLFW"
-	include "Hazel/vendor/Glad"
 	include "Hazel/vendor/imgui"
 	include "Hazel/vendor/yaml-cpp"
 group ""
 
 include "Hazel"
 include "Sandbox"
-include "Hazelnut"
