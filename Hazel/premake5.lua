@@ -47,7 +47,6 @@ project "Hazel"
 	links
 	{
 		"GLFW",
-		"Glad",
 		"ImGui",
 		"yaml-cpp",
 		"%{LinkDir.VulkanSDKLib}/vulkan-1.lib",
