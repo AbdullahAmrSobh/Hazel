@@ -3,8 +3,15 @@
 #include "Platform/VulkanRHI/VulkanDevice.h"
 
 #include "Platform/VulkanRHI/VulkanResources.h"
+#include "Platform/VulkanRHI/VulkanRHI.h"
 
 namespace Hazel {
+
+	RHIFence* VulkanRHI::CreateFence()
+	{
+		return new VulkanFence(m_pDevice);
+	}
+
 
 	VulkanSemaphore::VulkanSemaphore(const VulkanDevice* pDevice)
 		: m_pDevice(pDevice)

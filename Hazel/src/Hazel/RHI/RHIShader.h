@@ -1,5 +1,4 @@
 #pragma once
-#include "Hazel/RHI/RHIObject.h"
 
 namespace Hazel {
 
@@ -33,13 +32,10 @@ namespace Hazel {
 
 	};
 
-	class RHIVertexShader : public RHIShader { };
-	class RHIPixelShader : public RHIShader { };
-
 	class RHIShaderCompiler
 	{
 	public:
-		virtual RHIShader* CompileFromSource(const std::string& source, RHIShaderType type) const = 0;
+		virtual RHIShader* CompileFromSource(const std::string& source, RHIShaderType type, std::string& nputFilePath) const = 0;
 		virtual RHIShader* CompileShader(const std::vector<std::byte>& binary) const = 0;
 
 		template<class TShaderType>

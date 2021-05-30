@@ -8,7 +8,7 @@ namespace Hazel {
 	class VulkanDevice;
 	class VulkanQueue;
 
-	class VulkanCommandAllocator : public RHIObject
+	class VulkanCommandAllocator 
 	{
 	public:
 		VulkanCommandAllocator(const VulkanDevice* pDevice, const VulkanQueue* pQueue);
@@ -37,6 +37,7 @@ namespace Hazel {
 		inline void AddWaitSemaphore(VkSemaphore smeaphore) { m_WaitSemaphores.push_back(smeaphore); }
 
 	public:
+		virtual void Reset() final override;
 		virtual void Begin() final override;
 		virtual void End() final override;
 
@@ -54,8 +55,6 @@ namespace Hazel {
 		virtual void CopyResource(const RHITextureCopyDesc& copyDesc) final override;
 		virtual void CopyResource(const RHITextureToBufferCopyDesc& copyDesc) final override;
 		virtual void CopyResource(const RHIBufferToTextureCopyDesc& copyDesc) final override;
-
-		virtual void PipelineBarrier() final override;
 
 	private:
 		VulkanCommandAllocator* m_pAllocator;

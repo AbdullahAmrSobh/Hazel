@@ -11,6 +11,5 @@ layout(location = 0) out vec4 o_Fragment;
 void main() 
 {
 
-		
     o_Fragment = texture(u_Texture, i_TexCoords);
 }

@@ -38,6 +38,7 @@ IncludeDir["Vulkan"] = "%{VulkanSDKLocation}/Include"
 
 LinkDir = {}
 LinkDir["VulkanSDKLib"] = "%{VulkanSDKLocation}/Lib"
+LinkDir["VulkanSDKDebugLib"] = "%{VulkanSDKLocation}/DebugLibs/Lib"
 
 group "Dependencies"
 	include "vendor/premake"

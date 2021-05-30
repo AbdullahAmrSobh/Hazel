@@ -1,6 +1,4 @@
 #pragma once
-#include "RHIObject.h"
-
 #include "Hazel/RHI/RHIResources.h"
 
 namespace Hazel {
@@ -30,14 +28,14 @@ namespace Hazel {
 	};
 
 	// Pipeline layout
-	class RHIPipelineLayout : public RHIObject
+	class RHIPipelineLayout
 	{
 	public:
 
 	};
 	
 	// A base class for pipeline layouts
-	class RHIPipelineState : public RHIObject
+	class RHIPipelineState
 	{
 	public:
 

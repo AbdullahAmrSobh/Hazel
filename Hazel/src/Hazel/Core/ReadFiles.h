@@ -27,4 +27,24 @@ namespace Hazel {
 
 		return file;
 	}
+
+	// class FileSystem
+	// {
+	// public:
+	// 	FileSystem(std::string defaultCacheDir);
+	// 
+	// 	std::string ReadTextFile(std::string path);
+	// 	std::vector<std::byte> ReadFile(std::string path);
+	// 
+	// 	void WriteTextToFile(std::string path, std::string& text);
+	// 	void WriteBinaryToFile(std::string path, std::vector<std::byte>& data);
+	// 	void WriteBinaryToFile(std::string path, size_t size, std::byte* pData);
+	// 
+	// 	void CacheFile(size_t size, std::byte* pData);
+	// 	void GetCachedFile(std::vector<std::byte>& data);
+	// 
+	// 	bool CheckIfModified(std::string path);
+	// };
+
+
 }

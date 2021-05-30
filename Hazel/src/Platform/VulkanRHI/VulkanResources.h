@@ -9,16 +9,6 @@ namespace Hazel {
 
 	class VulkanBuffer;
 
-	inline VulkanBuffer* AsVulkanBuffer(RHIBuffer* pBuffer) 
-	{
-		return reinterpret_cast<VulkanBuffer*>(pBuffer);
-	}
-
-	inline const VulkanBuffer* AsVulkanBuffer(const RHIBuffer* pBuffer) 
-	{ 
-		return reinterpret_cast<const VulkanBuffer*>(pBuffer); 
-	}
-
 	class VulkanBuffer : public RHIBuffer
 	{
 	public:

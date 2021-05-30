@@ -8,7 +8,23 @@ namespace Hazel {
 
 	class VulkanDevice;
 
-	shaderc_shader_kind ConvertToShadercType(RHIShaderType type);
+	namespace ShadercUtils
+	{
+		static shaderc_shader_kind ConvertToShadercType(RHIShaderType type)
+		{
+			switch (type)
+			{
+			case RHIShaderType::eVertex:
+				return shaderc_vertex_shader;
+			case RHIShaderType::ePixel:
+				return shaderc_fragment_shader;
+			}
+
+			HZ_CORE_ASSERT(false, "unkowen or unimplemented shader type");
+			return shaderc_vertex_shader;
+		}
+
+	}
 
 	class VulkanShader : public RHIShader
 	{
@@ -30,12 +46,15 @@ namespace Hazel {
 	public:
 		VulkanShaderCompiler(const VulkanDevice* pDevice);
 
-		virtual RHIShader* CompileFromSource(const std::string& source, RHIShaderType type) const final override;
+		virtual RHIShader* CompileFromSource(const std::string& source, RHIShaderType type, std::string& nputFilePath) const final override;
 		virtual RHIShader* CompileShader(const std::vector<std::byte>& bin) const final override;
+
+
 
 	private:
 		const VulkanDevice* m_pDevice;
-		// shaderc::Compiler m_Compiler;
+		std::string			m_InputFilePath;
+		shaderc::Compiler	m_Compiler;
 	};
 
 

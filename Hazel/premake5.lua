@@ -2,7 +2,7 @@ project "Hazel"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
-	staticruntime "on"
+	staticruntime "off"
 
 	targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
@@ -48,9 +48,11 @@ project "Hazel"
 	{
 		"GLFW",
 		"ImGui",
-		"yaml-cpp",
+		-- "yaml-cpp",
 		"%{LinkDir.VulkanSDKLib}/vulkan-1.lib",
-		"D3D12.lib"
+		"%{LinkDir.VulkanSDKDebugLib}/shaderc_combinedd.lib",
+		"%{LinkDir.VulkanSDKDebugLib}/shadercd.lib",
+		-- "D3D12.lib"
 	}
 
 	filter "files:vendor/ImGuizmo/**.cpp"

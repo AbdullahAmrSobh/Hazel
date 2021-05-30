@@ -54,24 +54,9 @@ namespace Hazel
 		virtual RHITexture2D* CreateTexture2D(const RHITexture2DDesc& desc) final override;
 		 
 	private:
-		void InitInstance();
-		void InitDebugMessenger();	
-		void InitSurface();
-		void InitDevice(const Ref<VulkanPhysicalDeviceProperties>&);
-		void InitMemoryAllocator();
-		void InitSwapChain();
-		void InitShaderCompiler();
-
-	private:
 		void DestroyDebugUtilsMessenger();
 	
-	private:
-		std::vector<VkPhysicalDevice> EnmeratePhysicalDevices() const;
-		Ref<VulkanPhysicalDeviceProperties> GetVulkanPhysicalDeviceProperties(VkPhysicalDevice, VkSurfaceKHR) const;
-		VkSurfaceFormatKHR SelectSurfaceFormat(const VulkanPhysicalDeviceProperties& pProperties) const;
-		VkPresentModeKHR SelectSurfacePresentMode(const VulkanPhysicalDeviceProperties& pProperties) const;
-		VkExtent2D SelectSurfaceExtent(const VulkanPhysicalDeviceProperties& pProperties, VkExtent2D actualExtent) const;
-		Ref<VulkanPhysicalDeviceProperties> SelectPhysicalDevice() const;
+		VkPhysicalDevice SelectPhysicalDevice(const std::vector<VkPhysicalDevice>& physicalDevices) const;
 
 	private:
 		VkInstance							m_InstanceHandle;

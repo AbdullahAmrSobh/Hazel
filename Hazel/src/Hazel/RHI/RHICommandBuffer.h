@@ -1,6 +1,4 @@
 #pragma once
-
-#include "Hazel/RHI/RHIObject.h"
 #include "Hazel/RHI/RHIFrameBuffer.h"
 #include "Hazel/RHI/RHIPipelineState.h"
 #include <array>
@@ -49,10 +47,10 @@ namespace Hazel {
 	};
 
 
-	class RHICommandBuffer : public RHIObject
+	class RHICommandBuffer 
 	{
 	public:
-		
+		virtual void Reset() = 0;
 		virtual void Begin() = 0;
 		virtual void End() = 0;
 		
@@ -76,23 +74,7 @@ namespace Hazel {
 		virtual void CopyResource(const RHITextureToBufferCopyDesc& copyDesc) = 0;
 		virtual void CopyResource(const RHIBufferToTextureCopyDesc& copyDesc) = 0;
 
-		// Barriers
-		virtual void PipelineBarrier() = 0;
-		// virtual void CreateBarrier(const void* image) = 0;
-		// virtual void CreateBarrier(const void* buffer) = 0;
-		// virtual void CreateBarrier(const void* memory) = 0;
-
     };
 
-	class RHIGraphicsCommandBuffer;		// Binds a pipeline, and renders 
-	class RHIComputeCommandBuffer;		// Binds a pipeline,
-	class RHIResourceCommandBuffer;		// Move/Copy resources,
-
-	class RHICommandList
-	{
-	public:
-		std::vector<RHICommandBuffer*> pCommandBuffers;
-		class RHIFence* pFence;
-	};
 
 }

@@ -13,7 +13,7 @@ namespace Hazel {
 	{
 		VmaAllocatorCreateInfo createInfo = {};
 		createInfo.flags = 0;
-		createInfo.physicalDevice = pDevice->GetPhysicalDeviceProperties().PhysicalDeviceHandle;
+		createInfo.physicalDevice = pDevice->GetPhysicalDeviceHandle();
 		createInfo.device = pDevice->GetHandle();
 		createInfo.instance = instanceHandle;
 		// createInfo.vulkanApiVersion = VK_VERSION_1_2;

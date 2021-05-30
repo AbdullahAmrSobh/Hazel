@@ -41,15 +41,16 @@ namespace Hazel {
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
 
-		RHI* GetRHIInstance() { return m_pRHI; }
+		RHI* GetRHIInstance() { return m_pRHI.get(); }
+
 	private:
-		Scope<Window> m_Window;
-		RHI* m_pRHI;
-		ImGuiLayer* m_ImGuiLayer;
-		bool m_Running = true;
-		bool m_Minimized = false;
-		LayerStack m_LayerStack;
-		float m_LastFrameTime = 0.0f;
+		Scope<Window>	m_Window;
+		Scope<RHI>		m_pRHI;
+		ImGuiLayer*		m_ImGuiLayer;
+		bool			m_Running = true;
+		bool			m_Minimized = false;
+		LayerStack		m_LayerStack;
+		float			m_LastFrameTime = 0.0f;
 	private:
 		static Application* s_Instance;
 		friend int ::main(int argc, char** argv);

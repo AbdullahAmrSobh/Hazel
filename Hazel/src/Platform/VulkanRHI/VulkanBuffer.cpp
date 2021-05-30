@@ -3,8 +3,29 @@
 #include "Platform/VulkanRHI/VulkanDevice.h"
 #include "Platform/VulkanRHI/VulkanMemory.h"
 #include "Platform/VulkanRHI/VulkanResources.h"
+#include "Platform/VulkanRHI/VulkanRHI.h"
 
 namespace Hazel {
+
+	RHIUniformBuffer* VulkanRHI::CreateUniformBuffer(size_t bufferSize)
+	{
+		return new VulkanUniformBuffer(m_pDevice, m_pAllocator, bufferSize);
+	}
+
+	RHIStagingBuffer* VulkanRHI::CreateStagingBuffer(size_t bufferSize)
+	{
+		return new VulkanStagingBuffer(m_pDevice, m_pAllocator, bufferSize);
+	}
+
+	RHIVertexBuffer* VulkanRHI::CreateVertexBuffer(uint32_t vertexCount, uint32_t stride)
+	{
+		return new VulkanVertexBuffer(m_pDevice, m_pAllocator, vertexCount, stride);
+	}
+
+	RHIIndexBuffer* VulkanRHI::CreateIndexBuffer(uint32_t indciesCount, uint32_t stride)
+	{
+		return new VulkanIndexBuffer(m_pDevice, m_pAllocator, indciesCount, stride);
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,14 +104,14 @@ namespace Hazel {
 	{
 		void* pTarget;
 		// VK_CHECK_RESULT(vmaMapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation(), &pTarget), "Failed to map memory");
-		VK_CHECK_RESULT(vkMapMemory(m_pDevice->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetInfo().deviceMemory, offset, size, 0, &pTarget), "Failed to map memory");
+		VK_CHECK_RESULT(vkMapMemory(m_pDevice->GetHandle(), reinterpret_cast<VulkanBuffer*>(m_pBuffer)->GetInfo().deviceMemory, offset, size, 0, &pTarget), "Failed to map memory");
 		return pTarget;
 	}
 
 	void VulkanStagingBuffer::Unlock()
 	{
 		// vmaUnmapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation());
-		vkUnmapMemory(m_pDevice->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetInfo().deviceMemory);
+		vkUnmapMemory(m_pDevice->GetHandle(), reinterpret_cast<VulkanBuffer*>(m_pBuffer)->GetInfo().deviceMemory);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -197,9 +218,9 @@ namespace Hazel {
 	void VulkanUniformBuffer::SetData(size_t dataSize, const void* pData)
 	{
 		void* pTarget;
-		VK_CHECK_RESULT(vmaMapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation(), &pTarget), "Failed to map memory");
+		VK_CHECK_RESULT(vmaMapMemory(m_pAllocator->GetHandle(), reinterpret_cast<VulkanBuffer*>(m_pBuffer)->GetAllocation(), &pTarget), "Failed to map memory");
 		memcpy(pTarget, pData, dataSize);
-		vmaUnmapMemory(m_pAllocator->GetHandle(), AsVulkanBuffer(m_pBuffer)->GetAllocation());
+		vmaUnmapMemory(m_pAllocator->GetHandle(), reinterpret_cast<VulkanBuffer*>(m_pBuffer)->GetAllocation());
 	}
 
 

@@ -1,41 +1,23 @@
 #pragma once
-#include "Hazel/RHI/RHIObject.h"
-
 #include <vulkan/vulkan.h>
-
-#include <stb_image.h>
 
 namespace Hazel {
 	
 	class VulkanQueue;
 
-	struct VulkanPhysicalDeviceProperties
-	{
-		VkPhysicalDevice						PhysicalDeviceHandle;
-		std::vector<VkLayerProperties>			AvailableLayers;
-		std::vector<VkExtensionProperties>		AvailableExtensions;
-		VkPhysicalDeviceFeatures				Features;
-		std::vector<VkQueueFamilyProperties>	QueueFamilies;
-		VkPhysicalDeviceMemoryProperties		MemoryProperties;
-		VkPhysicalDeviceLimits					DeviceLimits;
-		VkSurfaceCapabilitiesKHR				SurfaceCapabilities;
-		std::vector<VkPresentModeKHR>			AvailableSurfacePresentModes;
-		std::vector<VkSurfaceFormatKHR>			AvailableSurfaceFormats;
-	};
-
-	class VulkanDevice : private RHIObject
+	class VulkanDevice 
 	{
 	public:
-		VulkanDevice(const Ref<VulkanPhysicalDeviceProperties>& pDeviceProperties, VkSurfaceKHR surfaceHandle);
+		VulkanDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surfaceHandle);
 		~VulkanDevice();
 
-		inline const VulkanPhysicalDeviceProperties& GetPhysicalDeviceProperties() const { return * m_pDeviceProperties.get(); }
 		inline VkDevice GetHandle() const { return m_DeviceHandle; }
+		inline VkPhysicalDevice GetPhysicalDeviceHandle() const { return m_hPhysicalDevice; }
 
-		inline VulkanQueue& GetPresentQueue() { return *m_pPresentQueue; }
-		inline VulkanQueue& GetGraphicsQueue() { return *m_pGraphicsQueue; }
-		inline VulkanQueue& GetComputeQueue() { return *m_pComputeQueue; }
-		inline VulkanQueue& GetTransferQueue() { return *m_pTransferQueue; }
+		inline VulkanQueue& GetPresentQueue() const { return *m_pPresentQueue; }
+		inline VulkanQueue& GetGraphicsQueue() const { return *m_pGraphicsQueue; }
+		inline VulkanQueue& GetComputeQueue() const { return *m_pComputeQueue; }
+		inline VulkanQueue& GetTransferQueue() const { return *m_pTransferQueue; }
 
 	private:
 
@@ -63,12 +45,12 @@ namespace Hazel {
 	private:
 		VkDevice m_DeviceHandle;
 		
-		Ref<VulkanPhysicalDeviceProperties> m_pDeviceProperties;
+		VkPhysicalDevice m_hPhysicalDevice;
 
-		VulkanQueue* m_pPresentQueue;
-		VulkanQueue* m_pGraphicsQueue;
-		VulkanQueue* m_pComputeQueue;
-		VulkanQueue* m_pTransferQueue;
+		mutable VulkanQueue* m_pPresentQueue;
+		mutable VulkanQueue* m_pGraphicsQueue;
+		mutable VulkanQueue* m_pComputeQueue;
+		mutable VulkanQueue* m_pTransferQueue;
 
 	};
 }

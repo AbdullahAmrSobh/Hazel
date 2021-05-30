@@ -8,31 +8,6 @@
 
 namespace Hazel {
 
-	enum class RHIPolygonFillMode
-	{
-
-	};
-
-	enum class RHIPolygonCullMode
-	{
-
-	};
-
-	enum class RHIPolygonFrontFace
-	{
-
-	};
-
-	enum class RHIColorComponentBitMask
-	{
-		eR, eG, eB, eA
-	};
-
-	enum class RHIBlendFactor
-	{
-
-	};
-
 	// Initializers
 	
 	class VulkanShader;

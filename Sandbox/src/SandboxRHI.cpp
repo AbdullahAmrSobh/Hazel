@@ -65,7 +65,6 @@ SandboxRHI::SandboxRHI()
 	
 	pRHI			= Application::GetRHI();
 	pSwapChain		= pRHI->GetSwapChain();
-	ppFrameBuffers	= pSwapChain->GetFrameBuffer();
 	pShaderFactory	= pRHI->GetShaderCompiler();
 }
 
@@ -98,12 +97,11 @@ void SandboxRHI::OnAttach()
 
 	// Graphics Pipeline Creation
 	{
-		Hazel::File pVertexShaderBin	= ReadBinaryFile("./assets/shaders/vert.spv");
-		Hazel::File pPixelShaderBin		= ReadBinaryFile("./assets/shaders/frag.spv");
+		std::string vertexShaderSource = ReadFile("assets/shaders/vertexShader.vert");
+		std::string pixelShaderSource = ReadFile("assets/shaders/fragmentShader.frag");
 
-		RHIShader* pVertexShader = pShaderFactory->CompileShader(pVertexShaderBin);
-		RHIShader* pPixelShader  = pShaderFactory->CompileShader(pPixelShaderBin);
-
+		RHIShader* pVertexShader = pShaderFactory->CompileFromSource(vertexShaderSource, RHIShaderType::eVertex, std::string("vertexShader"));
+		RHIShader* pPixelShader  = pShaderFactory->CompileFromSource(pixelShaderSource, RHIShaderType::ePixel, std::string("pixelShader"));
 		HZ_ASSERT(pVertexShader != nullptr && pPixelShader != nullptr);
 
 		RHIVertexBufferLayout vboLayout({
@@ -279,15 +277,7 @@ void SandboxRHI::OnAttach()
 	for (uint32_t i = 0; i < back_buffers_count; i++)
 	{
 		ppCommandBuffers[i] = pRHI->AllocateCommandBuffer();
-		RHICommandBuffer* pCmdBuffer = ppCommandBuffers[i];
-		
-		pCmdBuffer->Begin();
-		pCmdBuffer->BeginFrame(ppFrameBuffers[i], { 0.3f, 0.6f, 0.9f, 1.0f});
-		pCmdBuffer->BindGraphicsPipelineState(pGraphicsPipelineState);
-		pCmdBuffer->BindDescriptorSets(pPipelineLayout, pDescriptorSet);
-		pCmdBuffer->Draw(pVertexBuffer, pIndexBuffer);
-		pCmdBuffer->EndFrame();
-		pCmdBuffer->End();
+		pCommandBufferSyncFences.push_back(pRHI->CreateFence());
 	}
 
 }
@@ -300,9 +290,21 @@ void SandboxRHI::OnDetach()
 
 void SandboxRHI::OnUpdate(Hazel::Timestep ts)
 {
-	// s_pRenderdoc_api->StartFrameCapture(NULL, NULL);
+	RHIFrameBuffer* pCurrentFrameBUffer = pSwapChain->AcquireNextFrame();
+
 	uint32_t currentFrameIndex = pSwapChain->GetCurrentFrameIndex();
-	pSwapChain->SwapBuffers();
+
+	ppCommandBuffers[currentFrameIndex]->Reset();
+	ppCommandBuffers[currentFrameIndex]->Begin();
+	ppCommandBuffers[currentFrameIndex]->BeginFrame(pCurrentFrameBUffer, { 0.3f, 0.6f, 0.9f, 1.0f });
+	ppCommandBuffers[currentFrameIndex]->BindGraphicsPipelineState(pGraphicsPipelineState);
+	ppCommandBuffers[currentFrameIndex]->BindDescriptorSets(pPipelineLayout, pDescriptorSet);
+	ppCommandBuffers[currentFrameIndex]->Draw(pVertexBuffer, pIndexBuffer);
+	ppCommandBuffers[currentFrameIndex]->EndFrame();
+	ppCommandBuffers[currentFrameIndex]->End();
+
+	// pCommandBufferSyncFences[currentFrameIndex]->Wait();
+	// pCommandBufferSyncFences[currentFrameIndex]->Reset();
 	pRHI->ExecuteCommandBuffer(ppCommandBuffers[currentFrameIndex]);
 	pSwapChain->Present();
 
@@ -318,8 +320,6 @@ void SandboxRHI::OnUpdate(Hazel::Timestep ts)
 
 	pMvpUB->SetData(sizeof(MvpData), &MvpData);
 
-	// s_pRenderdoc_api->EndFrameCapture(NULL, NULL);
-
 }
 
 void SandboxRHI::OnImGuiRender()
@@ -331,5 +331,5 @@ void SandboxRHI::OnImGuiRender()
 
 void SandboxRHI::OnEvent(Hazel::Event& e)
 {
-	HZ_CRITICAL("An Event is unhandled {0}", e.ToString());
+	// HZ_CRITICAL("An Event is unhandled {0}", e.ToString());
 }

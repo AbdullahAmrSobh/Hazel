@@ -1,12 +1,18 @@
 #pragma once
 #include "Hazel/RHI/RHIResources.h"
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 #include <vulkan/vulkan.h>
 
 namespace Hazel {
+	
+	#define VK_CHECK_RESULT(result, msg) HZ_CORE_ASSERT(result == VK_SUCCESS, VulkanUtils::ResultToString(result).c_str())
 
 	namespace VulkanUtils
 	{
+
 		static std::string ResultToString(VkResult result)
 		{
 			switch (result)
@@ -56,8 +62,7 @@ namespace Hazel {
 			// case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR:		return "VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR";
 			// case VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT:				return "VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT";
 			case VK_RESULT_MAX_ENUM:									return "VK_RESULT_MAX_ENUM";
-			default:													
-				return "UNKOWN RESULT";
+			default:													return "UNKOWN RESULT";
 			}
 		}
 		
@@ -266,8 +271,46 @@ namespace Hazel {
 			}
 		}
 
+
+		static VkSurfaceFormatKHR SelectSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
+		{
+			for (const auto& availableFormat : formats) {
+				if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+					return availableFormat;
+				}
+			}
+			return formats[0];
+		}
+
+		static VkPresentModeKHR SelectSurfacePresentMode(const std::vector<VkPresentModeKHR>& presentModes)
+		{
+			for (const auto& availablePresentMode : presentModes) {
+				if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+					return availablePresentMode;
+				}
+			}
+
+			return VK_PRESENT_MODE_FIFO_KHR;
+		}
+
+		static VkExtent2D SelectSurfaceExtent(VkExtent2D actualExtent, VkExtent2D currentExtent, VkExtent2D minImageExtent, VkExtent2D maxImageExtent)
+		{
+			if (actualExtent.width != UINT32_MAX)
+			{
+				return currentExtent;
+			}
+			else
+			{
+				actualExtent.width = std::max(minImageExtent.width, std::min(maxImageExtent.width, actualExtent.width));
+				actualExtent.height = std::max(minImageExtent.height, std::min(maxImageExtent.height, actualExtent.height));
+
+				return actualExtent;
+			}
+		}
+
+
 	}
 
-	#define VK_CHECK_RESULT(result, msg) HZ_CORE_ASSERT(result == VK_SUCCESS, VulkanUtils::ResultToString(result).c_str())
+
 
 }

@@ -1,5 +1,4 @@
 #pragma once
-#include "Hazel/Debug/renderdoc_app.h"
 #include "Hazel/Core/Window.h"
 
 namespace Hazel 
@@ -27,7 +26,6 @@ namespace Hazel
 	class RHISampler;
 	class RHITexture2D;
 
-
 	enum class RHIBackend
 	{
 		eNone,
@@ -35,16 +33,10 @@ namespace Hazel
 		eD3D12,
 	};
 
-	struct RHIDesc
-	{
-
-	};
-
-	class RHI : private NonCopyable
+	class RHI : public NonCopyable
 	{
 	public:
-		static RHI* CreateRHI(class Window* pWindow);
-		// static Scope<RHI> CreateRHI(const RHIDesc& desc);
+		static Scope<RHI> CreateRHI(Window* pWindow);
 	
 		inline RHIBackend GetRHIBackend() const { return m_Backend; }
 		inline Window* GetWindow() const { return m_pWindow; }
@@ -72,7 +64,6 @@ namespace Hazel
 
 		virtual RHICommandBuffer* AllocateCommandBuffer() = 0;	
 		virtual void ExecuteCommandBuffer(RHICommandBuffer* pCommandBuffer, RHIFence* pFence = nullptr) = 0;
-		// virtual void ExecuteCommandBuffer(uint32_t commandCount, RHICommandList* pCmdList, RHIFence* pFence = nullptr) = 0;
 
 		// Resources Creation
 		virtual RHIUniformBuffer* CreateUniformBuffer(size_t bufferSize) = 0;
@@ -89,7 +80,5 @@ namespace Hazel
 		RHIBackend m_Backend;
 
 	};
-
-	static inline RENDERDOC_API_1_1_2* s_pRenderdoc_api = nullptr;
 
 }

@@ -7,29 +7,32 @@
 #include "Platform/VulkanRHI/VulkanResources.h"
 #include "Platform/VulkanRHI/VulkanSwapChain.h"
 
+#include "Platform/VulkanRHI/VulkanWrapper.h"
+#include "Platform/VulkanRHI/VulkanUtils.h"
+
 namespace Hazel {
 
-	VulkanSwapChain::VulkanSwapChain(const VulkanDevice* pDevice, const VulkanQueue* pQueue, const VkSwapchainCreateInfoKHR& createInfo)
+	VulkanSwapChain::VulkanSwapChain(const VulkanDevice* pDevice, VkSurfaceKHR hSurface, const VulkanQueue* pQueue)
 		: m_pDevice(pDevice)
 		, m_pPresentQueue(pQueue)
-		, m_Handle(VK_NULL_HANDLE)
+		, m_hSwapchain(VK_NULL_HANDLE)
+		, m_hSurface(hSurface)
 		, m_pRenderPass(nullptr)
+		, m_PresentCompleteSemaphore(new VulkanSemaphore(m_pDevice))
 	{
-		m_Width				= createInfo.imageExtent.width;
-		m_Height			= createInfo.imageExtent.height;
-		m_CurrentFrameIndex = 0;
-		m_BackBuffersCount	= createInfo.minImageCount;
-		m_pFence			= new VulkanFence(m_pDevice);
-
-		VK_CHECK_RESULT(vkCreateSwapchainKHR(m_pDevice->GetHandle(), &createInfo, nullptr, &m_Handle), "Failed to create a SwapChain");
-
-		InitRenderPass(createInfo.imageFormat);
-		InitFrameBuffer(createInfo.imageFormat);
+		auto extent = QueryCurrentExtent();
+		InitSwapchain(extent.width, extent.height );
 	}
 
 	VulkanSwapChain::~VulkanSwapChain()
 	{
-		vkDestroySwapchainKHR(m_pDevice->GetHandle(), m_Handle, nullptr);
+		// Wait for the device to become idle
+		VK_CHECK_RESULT(vkDeviceWaitIdle(m_pDevice->GetHandle()));
+
+		for ( uint32_t i = 0; i < m_pFrameBuffers.size(); i++)
+			delete m_pFrameBuffers[i];
+
+		vkDestroySwapchainKHR(m_pDevice->GetHandle(), m_hSwapchain, nullptr);
 	}
 
 	void VulkanSwapChain::OnResize(uint32_t width, uint32_t height)
@@ -39,7 +42,7 @@ namespace Hazel {
 
 	void VulkanSwapChain::Present()
 	{
-		std::vector<VkSemaphore> framebufferReadySemaphore = {  };
+		std::vector<VkSemaphore> framebufferReadySemaphore = { m_PresentCompleteSemaphore->GetHandle() };
 
 		static VkResult presentationResult = VK_RESULT_MAX_ENUM;
 
@@ -49,26 +52,104 @@ namespace Hazel {
 		presentInfo.waitSemaphoreCount	= framebufferReadySemaphore.size();
 		presentInfo.pWaitSemaphores		= framebufferReadySemaphore.data();
 		presentInfo.swapchainCount		= 1;
-		presentInfo.pSwapchains			= &m_Handle;
+		presentInfo.pSwapchains			= &m_hSwapchain;
 		presentInfo.pImageIndices		= &m_CurrentFrameIndex;
 		presentInfo.pResults			= &presentationResult;
 
-		VK_CHECK_RESULT(vkQueuePresentKHR(m_pPresentQueue->GetHandle(), &presentInfo), "Failed to present image[{0}]", m_CurrentFrameIndex);
-		HZ_CORE_ASSERT(presentationResult == VK_SUCCESS, "Failed to present");
+		auto presentSubmitResult= vkQueuePresentKHR(m_pPresentQueue->GetHandle(), &presentInfo);
+		// VK_CHECK_RESULT(presentSubmitResult, "Failed to present image[{0}]", m_CurrentFrameIndex);
+		// HZ_CORE_ASSERT(presentationResult == VK_SUCCESS, "Failed to present");
+
+		if (presentSubmitResult != VK_SUCCESS)
+		{
+			HZ_CORE_ERROR("present errors {0}, {1}", VulkanUtils::ResultToString(presentationResult).c_str(), VulkanUtils::ResultToString(presentSubmitResult).c_str());
+			HZ_CORE_ERROR("Attempting to recreate swapchain");
+			auto extent = QueryCurrentExtent();
+			InitSwapchain(extent.width, extent.height);
+		}
+
 		vkQueueWaitIdle(m_pPresentQueue->GetHandle());
+
 	}
 
-	void VulkanSwapChain::SwapBuffers()
+	RHIFrameBuffer* VulkanSwapChain::AcquireNextFrame()
 	{
-		VkSemaphore semaphore = m_pFrameBuffers[m_CurrentFrameIndex]->GetImageAvailableSemaphore().GetHandle();
+		VkSemaphore semaphore = m_PresentCompleteSemaphore->GetHandle();
+		// VkSemaphore semaphore = m_pFrameBuffers[m_CurrentFrameIndex]->GetImageAvailableSemaphore().GetHandle();
 
-		VK_CHECK_RESULT(vkAcquireNextImageKHR(m_pDevice->GetHandle(), m_Handle, UINT64_MAX, semaphore, VK_NULL_HANDLE, &m_CurrentFrameIndex), 
-			"Failed to aquire next image, current index is {0}", m_CurrentFrameIndex);
+		auto aquireResult = vkAcquireNextImageKHR(m_pDevice->GetHandle(), m_hSwapchain, UINT64_MAX, semaphore, VK_NULL_HANDLE, &m_CurrentFrameIndex);
+		
+		if (aquireResult != VK_SUCCESS)
+		{
+			HZ_CORE_ERROR("present errors {0}, {1}", VulkanUtils::ResultToString(aquireResult).c_str(), VulkanUtils::ResultToString(aquireResult).c_str());
+			HZ_CORE_ERROR("Attempting to recreate swapchain");
+			auto extent = QueryCurrentExtent();
+			InitSwapchain(extent.width, extent.height);
+
+		}
+		
+		//VK_CHECK_RESULT(aquireResult, "Failed to aquire next image, current index is {0}", m_CurrentFrameIndex);
+
+		return m_pFrameBuffers[m_CurrentFrameIndex];
 	}
 
-	RHIFrameBuffer** VulkanSwapChain::GetFrameBuffer()
+	void VulkanSwapChain::InitSwapchain(uint32_t width, uint32_t height)
 	{
-		return reinterpret_cast<RHIFrameBuffer**>(m_pFrameBuffers.data());
+		VkPhysicalDevice hPhysicalDevice = m_pDevice->GetPhysicalDeviceHandle();
+		VkSurfaceCapabilitiesKHR surfaceCapabilities = Vulkan::GetPhysicalDeviceSurfaceCapabilities(hPhysicalDevice, m_hSurface);
+		VkSurfaceFormatKHR surfaceFormats = VulkanUtils::SelectSurfaceFormat(
+			Vulkan::GetPhysicalDeviceSurfaceFormats(hPhysicalDevice, m_hSurface)
+		);
+
+		VkSwapchainCreateInfoKHR createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+		createInfo.surface = m_hSurface;
+		createInfo.minImageCount = surfaceCapabilities.minImageCount;
+		createInfo.imageFormat = surfaceFormats.format;
+		createInfo.imageColorSpace = surfaceFormats.colorSpace;
+
+		createInfo.imageExtent = VulkanUtils::SelectSurfaceExtent(
+			{ m_Width, m_Height },
+			surfaceCapabilities.currentExtent,
+			surfaceCapabilities.minImageExtent,
+			surfaceCapabilities.maxImageExtent);
+
+		createInfo.imageArrayLayers = 1;
+		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+		if (m_pDevice->GetGraphicsQueue().GetFamilyIndex() == m_pDevice->GetPresentQueue().GetFamilyIndex())
+		{
+			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			createInfo.queueFamilyIndexCount = 0;
+			createInfo.pQueueFamilyIndices = nullptr;
+		}
+		else
+		{
+			uint32_t queueFamiliesIndcies = {};
+			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+			createInfo.queueFamilyIndexCount = 2;
+			createInfo.pQueueFamilyIndices = &queueFamiliesIndcies;
+		}
+
+		createInfo.preTransform = surfaceCapabilities.currentTransform;
+		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		createInfo.presentMode = VulkanUtils::SelectSurfacePresentMode(
+			Vulkan::GetPhysicalDeviceSurfaceAvailablePresentModes(hPhysicalDevice, m_hSurface));
+		createInfo.clipped = VK_TRUE;
+		createInfo.oldSwapchain = m_hSwapchain;
+
+		VK_CHECK_RESULT(vkCreateSwapchainKHR(m_pDevice->GetHandle(), &createInfo, nullptr, &m_hSwapchain), "Failed to create a SwapChain");
+
+		m_Width = width;
+		m_Height = height;
+		m_BackBuffersCount = createInfo.minImageCount;
+
+		m_pFence = new VulkanFence(m_pDevice);
+
+		InitRenderPass(createInfo.imageFormat);
+		InitFrameBuffer(createInfo.imageFormat);
 	}
 
 	void VulkanSwapChain::InitRenderPass(VkFormat colorFormat)
@@ -103,12 +184,15 @@ namespace Hazel {
 		m_pRenderPass = new VulkanRenderPass(m_pDevice, attachmentsDesc, subpassDesc, subpassDependencies);
 	}
 
+
+	VkExtent2D VulkanSwapChain::QueryCurrentExtent() const
+	{
+		return Vulkan::GetPhysicalDeviceSurfaceCapabilities(m_pDevice->GetPhysicalDeviceHandle(), m_hSurface).currentExtent;
+	}
+
 	void VulkanSwapChain::InitFrameBuffer(VkFormat format)
 	{
-		std::vector<VkImage> images;
-		vkGetSwapchainImagesKHR(m_pDevice->GetHandle(), m_Handle, &m_BackBuffersCount, nullptr);
-		images.resize(m_BackBuffersCount);
-		vkGetSwapchainImagesKHR(m_pDevice->GetHandle(), m_Handle, &m_BackBuffersCount, images.data());
+		std::vector<VkImage> images = Vulkan::GetSwapchainImages(m_pDevice->GetHandle(), m_hSwapchain);
 
 		for (auto image : images)
 		{

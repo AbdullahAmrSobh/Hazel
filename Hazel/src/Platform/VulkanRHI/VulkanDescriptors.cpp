@@ -3,8 +3,15 @@
 #include "Platform/VulkanRHI/VulkanDevice.h"
 #include "Platform/VulkanRHI/VulkanResources.h"
 #include "Platform/VulkanRHI/VulkanDescriptors.h"
+#include "Platform/VulkanRHI/VulkanRHI.h"
 
 namespace Hazel {
+
+	RHIDescriptorPool* VulkanRHI::CreateDescriptorPool(const std::vector<RHIDescriptorSetLayoutDesc>& layouts, uint32_t maxSets)
+	{
+		return new VulkanDescriptorPool(m_pDevice, m_pDescriptorsLayoutManager, layouts, maxSets);
+	}
+
 
 	VulkanDescriptorsLayoutManager::VulkanDescriptorsLayoutManager(const VulkanDevice* pDevice)
 		: m_pDevice(pDevice)

@@ -4,16 +4,9 @@
 // #include <imgui.h>
 
 #include "Hazel/Core/Application.h"
-#include "Hazel/RHI/RendererHardwareInterface.h"
 
 
 namespace Hazel {
-
-	ImGuiLayer::ImGuiLayer(RHI* pRHI)
-		: Layer("ImGuiLayer")
-		, m_pRHI(pRHI)
-	{
-	}
 
 	void ImGuiLayer::OnAttach()
 	{

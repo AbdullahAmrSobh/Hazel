@@ -1,12 +1,11 @@
 #pragma once
-#include "RHIObject.h"
 
 namespace Hazel {
 
 	class RHIFrameBuffer;
 	class RHIFence;
 
-	class RHISwapChain : public RHIObject
+	class RHISwapChain
 	{
 	public:
 
@@ -20,9 +19,7 @@ namespace Hazel {
 
 		virtual void OnResize(uint32_t width, uint32_t height) = 0;
 		virtual void Present() = 0;
-		virtual void SwapBuffers() = 0;
-
-		virtual RHIFrameBuffer** GetFrameBuffer() = 0;
+		virtual RHIFrameBuffer* AcquireNextFrame() = 0;
 
 	protected:
 		uint32_t	m_CurrentFrameIndex;

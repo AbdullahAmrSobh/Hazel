@@ -32,12 +32,14 @@ public:
 private:
 	RHI*									pRHI;
 	RHISwapChain*							pSwapChain;
-	// RHIFence*								pSwapFence;
+	// RHIFence*							pSwapFence;
 	RHIShaderCompiler*						pShaderFactory;
-	RHIFrameBuffer**						ppFrameBuffers;
 	RHIPipelineLayout*						pPipelineLayout;
 	RHIGraphicsPipelineState*				pGraphicsPipelineState;
+	
+	std::vector<RHIFence*>					pCommandBufferSyncFences;
 	RHICommandBuffer**						ppCommandBuffers;
+	
 	RHIDescriptorPool*						pDescriptorsPool;
 	RHIDescriptorSet*						pDescriptorSet;
 	RHIStagingBuffer*						pStaginingBuffer;
@@ -50,4 +52,5 @@ private:
 
 	RHIUniformBuffer*						pMvpUB;
 	MvpUniform								MvpData;
+
 };

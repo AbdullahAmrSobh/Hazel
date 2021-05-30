@@ -4,8 +4,71 @@
 #include "Platform/VulkanRHI/VulkanDevice.h"
 #include "Platform/VulkanRHI/VulkanShader.h"
 #include "Platform/VulkanRHI/VulkanPipelineState.h"
+#include "Platform/VulkanRHI/VulkanDescriptors.h"
+#include "Platform/VulkanRHI/VulkanSwapChain.h"
+#include "Platform/VulkanRHI/VulkanFrameBuffer.h"
+#include "Platform/VulkanRHI/VulkanRHI.h"
 
 namespace Hazel {
+
+
+	RHIPipelineLayout* VulkanRHI::CreatePipelineLayout(const RHIPipelineLayoutDesc& desc)
+	{
+		std::vector<VkDescriptorSetLayout> layouts = {};
+		layouts.reserve(desc.DescriptorsLayouts.size());
+
+		for (auto& layout : desc.DescriptorsLayouts) layouts.push_back(m_pDescriptorsLayoutManager->GetOrCreate(layout));
+
+		return new VulkanPipelineLayout(m_pDevice, layouts.size(), layouts.data());
+	}
+
+	RHIGraphicsPipelineState* VulkanRHI::CreateGraphicsPipelineState(const RHIGraphicsPipelineStateDesc& desc)
+	{
+		RHIViewport viewportDesc = {};
+		viewportDesc.Width = m_pWindow->GetWidth();
+		viewportDesc.Height = m_pWindow->GetHeight();
+
+		RHIReact2D reactDesc = {};
+		reactDesc.Width = m_pWindow->GetWidth();
+		reactDesc.Height = m_pWindow->GetHeight();
+
+		VulkanPipelineShaderStagesInitializer		shaderStage(desc.pVS, desc.pPS);
+		VulkanPipelineVertexInputStateInitializer	vertexInput(desc.pVertexLayout);
+		VulkanPipelineInputAssemblyStateInitializer inputAssembly;
+		VulkanPipelineTessellationStateInitializer	tessellation;
+		VulkanPipelineViewportStateInitializer		viewport(viewportDesc, reactDesc);
+		VulkanPipelineRasterizationStateInitializer rasterization;
+		VulkanPipelineMultisampleStateInitializer	multisample;
+		VulkanPipelineDepthStencilStateInitializer	depthStencil;
+		VulkanPipelineColorBlendStateInitializer	colorBlend;
+		VulkanPipelineDynamicStateInitializer		dynamic;
+
+		VkGraphicsPipelineCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+
+		shaderStage.WriteTo(&createInfo.stageCount, &createInfo.pStages);
+		vertexInput.WriteTo(&createInfo.pVertexInputState);
+		inputAssembly.WriteTo(&createInfo.pInputAssemblyState);
+		tessellation.WriteTo(&createInfo.pTessellationState);
+		viewport.WriteTo(&createInfo.pViewportState);
+		rasterization.WriteTo(&createInfo.pRasterizationState);
+		multisample.WriteTo(&createInfo.pMultisampleState);
+		depthStencil.WriteTo(&createInfo.pDepthStencilState);
+		colorBlend.WriteTo(&createInfo.pColorBlendState);
+		dynamic.WriteTo(&createInfo.pDynamicState);
+
+		VulkanPipelineLayout* pLayout = reinterpret_cast<VulkanPipelineLayout*>(desc.pLayout);
+
+		createInfo.layout = pLayout->GetHandle();
+		createInfo.renderPass = m_pSwapChain->GetRenderPass()->GetHandle();
+		createInfo.subpass = 0;
+		createInfo.basePipelineHandle = VK_NULL_HANDLE;
+		createInfo.basePipelineIndex = 0;
+
+		return new VulkanGraphicsPipelineState(m_pDevice, createInfo);
+	}
 
 
 	VulkanPipelineShaderStagesInitializer::VulkanPipelineShaderStagesInitializer(const RHIShader* pVS, const RHIShader* pFS)

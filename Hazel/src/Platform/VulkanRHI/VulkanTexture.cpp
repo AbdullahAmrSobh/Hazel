@@ -3,9 +3,40 @@
 #include "Platform/VulkanRHI/VulkanDevice.h"
 #include "Platform/VulkanRHI/VulkanMemory.h"
 #include "Platform/VulkanRHI/VulkanResources.h"
+#include "Platform/VulkanRHI/VulkanRHI.h"
 
 
 namespace Hazel {
+
+	RHISampler* VulkanRHI::CreateSampler(const RHISamplerDesc& desc)
+	{
+		VkSamplerCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+		createInfo.magFilter = VulkanUtils::GetFilter(desc.Filter);
+		createInfo.minFilter = VulkanUtils::GetFilter(desc.Filter);
+		createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		createInfo.addressModeU = VulkanUtils::GetAddressMode(desc.AddressU);
+		createInfo.addressModeV = VulkanUtils::GetAddressMode(desc.AddressV);
+		createInfo.addressModeW = VulkanUtils::GetAddressMode(desc.AddressW);
+		createInfo.mipLodBias = desc.MipLODBias;
+		createInfo.anisotropyEnable = desc.MaxAnisotropy != 0.0f ? VK_FALSE : VK_TRUE;
+		createInfo.maxAnisotropy = desc.MaxAnisotropy;
+		createInfo.compareEnable = VulkanUtils::GetCompareOp(desc.ComparisonFunc) != VK_COMPARE_OP_MAX_ENUM ? VK_FALSE : VK_TRUE;
+		createInfo.compareOp = VulkanUtils::GetCompareOp(desc.ComparisonFunc);
+		createInfo.minLod = desc.MinLOD;
+		createInfo.maxLod = desc.MaxLOD;
+		createInfo.borderColor = VulkanUtils::GetBorderColor(desc.Border);
+		createInfo.unnormalizedCoordinates = (desc.MinLOD || desc.MaxLOD) ? VK_TRUE : VK_FALSE;
+
+		return new VulkanSampler(m_pDevice, createInfo);
+	}
+
+	RHITexture2D* VulkanRHI::CreateTexture2D(const RHITexture2DDesc& desc)
+	{
+		return new VulkanTexture2D(m_pDevice, m_pAllocator, desc);
+	}
 
 	VulkanSampler::VulkanSampler(const VulkanDevice* pDevice, const VkSamplerCreateInfo& createInfo)
 		: m_pDevice(pDevice)

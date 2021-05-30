@@ -7,19 +7,6 @@
 
 namespace Hazel {
 
-	shaderc_shader_kind ConvertToShadercType(RHIShaderType type)
-	{
-		switch (type)
-		{
-		case RHIShaderType::eVertex:
-			return shaderc_vertex_shader;
-		case RHIShaderType::ePixel:
-			return shaderc_fragment_shader;
-		}
-
-		HZ_CORE_ASSERT(false, "unkowen or unimplemented shader type");
-		return shaderc_vertex_shader;
-	}
 
 	VulkanShader::VulkanShader(const VulkanDevice* pDevice, size_t size, const uint32_t* pData, std::string name, RHIShaderType type)
 		: RHIShader(size, reinterpret_cast<const std::byte*>(pData), type)
@@ -47,24 +34,24 @@ namespace Hazel {
 	{
 	}
 
-
-	RHIShader* VulkanShaderCompiler::CompileFromSource(const std::string& source, RHIShaderType type) const
+	RHIShader* VulkanShaderCompiler::CompileFromSource(const std::string& source, RHIShaderType type, std::string& nputFilePath) const
 	{
-		// auto res = m_Compiler.CompileGlslToSpv(source, ConvertToShadercType(type), "main");
-		// 
-		// if (res.GetCompilationStatus() != shaderc_compilation_status_success)
-		// {
-		// 	HZ_CORE_ERROR("Failed to compile {0} errors found, {1}", res.GetNumErrors(), res.GetErrorMessage());
-		// 	HZ_CORE_WARN("{0} Warning found, {1}", res.GetNumWarnings());
-		// 
-		// 	return nullptr;
-		// }
-		// 
-		// std::vector<const uint32_t*> code{ res.begin(), res.end() };
-		// 
-		// return new VulkanShader(m_pDevice, code.size(), (uint32_t*)code.data(), type);
+		const char* entryPoint = "main";
 
-		return nullptr;
+		auto result = m_Compiler.CompileGlslToSpv(source, ShadercUtils::ConvertToShadercType(type), nputFilePath.c_str());
+		if (result.GetCompilationStatus() != shaderc_compilation_status_success)
+		{
+			HZ_CORE_ERROR(result.GetErrorMessage());
+			HZ_CORE_ASSERT(false);
+		}
+
+		size_t size = 0;
+		for (auto data : result)
+		{
+			size += sizeof(data);
+		}
+
+		return new VulkanShader(m_pDevice, size, result.cbegin(), entryPoint, type);
 	}
 
 	RHIShader* VulkanShaderCompiler::CompileShader(const std::vector<std::byte>& bin) const

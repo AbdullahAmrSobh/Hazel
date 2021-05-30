@@ -10,9 +10,26 @@
 #include "Platform/VulkanRHI/VulkanDescriptors.h"
 
 #include "Platform/VulkanRHI/VulkanCommandBuffers.h"
+#include "Platform/VulkanRHI/VulkanRHI.h"
 
 
 namespace Hazel {
+
+
+	RHICommandBuffer* VulkanRHI::AllocateCommandBuffer()
+	{
+		return new VulkanCommandBuffer(m_pCommandAllocator);
+	}
+
+	void VulkanRHI::ExecuteCommandBuffer(RHICommandBuffer* pCommandBuffer, RHIFence* pFence)
+	{
+		m_pDevice->GetGraphicsQueue().SubmitCommandBuffer(
+			reinterpret_cast<VulkanCommandBuffer*>(pCommandBuffer),
+			reinterpret_cast<VulkanFence*>(pFence)
+		);
+	}
+
+
 
 	VulkanCommandAllocator::VulkanCommandAllocator(const VulkanDevice* pDevice, const VulkanQueue* pQueue)
 		: m_pDevice(pDevice)
@@ -21,7 +38,7 @@ namespace Hazel {
 		VkCommandPoolCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		createInfo.pNext = nullptr;
-		createInfo.flags = 0;
+		createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT;
 		createInfo.queueFamilyIndex = pQueue->GetFamilyIndex();
 
 		VK_CHECK_RESULT(vkCreateCommandPool(m_pDevice->GetHandle(), &createInfo, nullptr, &m_CommandPoolHandle), 
@@ -67,6 +84,12 @@ namespace Hazel {
 	VulkanCommandBuffer::~VulkanCommandBuffer()
 	{
 		m_pAllocator->FreeCommandBuffer(1, &m_CommandBufferHandle);
+	}
+
+	void VulkanCommandBuffer::Reset()
+	{
+		VkCommandBufferResetFlags resetFlags = VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
+		VK_CHECK_RESULT(vkResetCommandBuffer(m_CommandBufferHandle, resetFlags), "Failed to Rest command buffer");
 	}
 
 	void VulkanCommandBuffer::Begin()
@@ -135,7 +158,7 @@ namespace Hazel {
 		VkDeviceSize offset = 0;
 
 		const VulkanVertexBuffer* pVbo = reinterpret_cast<const VulkanVertexBuffer*>(pVertexBuffer);
-		VkBuffer bufferHandle = AsVulkanBuffer(pVbo->GetBuffer())->GetHandle();
+		VkBuffer bufferHandle = reinterpret_cast<VulkanBuffer*>(pVbo->GetBuffer())->GetHandle();
 		uint32_t vertciesCount = pVbo->GetVertexCount();
 
 		vkCmdBindVertexBuffers(m_CommandBufferHandle, 0, 1, &bufferHandle, &offset);
@@ -148,11 +171,11 @@ namespace Hazel {
 		VkDeviceSize offset = 0;
 
 		const VulkanVertexBuffer* pVbo = reinterpret_cast<const VulkanVertexBuffer*>(pVertexBuffer);
-		VkBuffer bufferHandle = AsVulkanBuffer(pVbo->GetBuffer())->GetHandle();
+		VkBuffer bufferHandle = reinterpret_cast<VulkanBuffer*>(pVbo->GetBuffer())->GetHandle();
 		vkCmdBindVertexBuffers(m_CommandBufferHandle, 0, 1, &bufferHandle, &offset);
 
 		const VulkanIndexBuffer* pIbo = reinterpret_cast<const VulkanIndexBuffer*>(pIndexBuffer);
-		VkBuffer indexBuffer = AsVulkanBuffer(pIbo->GetBuffer())->GetHandle();
+		VkBuffer indexBuffer = reinterpret_cast<VulkanBuffer*>(pIbo->GetBuffer())->GetHandle();
 		vkCmdBindIndexBuffer(m_CommandBufferHandle, indexBuffer, offset, VK_INDEX_TYPE_UINT32);
 
 		vkCmdDrawIndexed(m_CommandBufferHandle, pIbo->GetIndciesCount(), 1, 0, 0, 0);
@@ -232,12 +255,5 @@ namespace Hazel {
 
 		vkCmdPipelineBarrier(m_CommandBufferHandle, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 	}
-
-	void VulkanCommandBuffer::PipelineBarrier()
-	{
-
-	}
-
-
 
 }

@@ -15,9 +15,131 @@
 #include "Platform/VulkanRHI/VulkanResources.h"
 #include "Platform/VulkanRHI/VulkanRHI.h"
 
+#include "Platform/VulkanRHI/VulkanWrapper.h"
 
 namespace Hazel
 {
+	VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+		VkDebugUtilsMessageTypeFlagsEXT message_type,
+		const VkDebugUtilsMessengerCallbackDataEXT *callback_data,
+		void *user_data)
+	{
+		if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+			HZ_CORE_INFO("[{0} : {1}] : {2}", callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
+		else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
+			HZ_CORE_WARN("[{0} : {1}] : {2}", callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
+		else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+			HZ_CORE_WARN("{0} \n : \n {1} : \n {2}", callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
+		else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+		{
+			std::stringstream msg;
+			msg << callback_data->pMessageIdName << " : " << callback_data->pMessage;
+			HZ_CORE_ASSERT(false, msg.str().c_str());
+		}
+
+		return VK_FALSE;
+	}
+
+	VulkanRHI::VulkanRHI(Window *pWindow)
+		: RHI(pWindow, RHIBackend::eVulkan)
+	{
+		{
+			VkApplicationInfo appInfo = {};
+			{
+				appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+				appInfo.pNext = nullptr;
+				appInfo.pApplicationName = "Hazel App";
+				appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
+				appInfo.pEngineName = "Hazel";
+				appInfo.engineVersion = VK_MAKE_VERSION(0, 1, 0);
+				appInfo.apiVersion = VK_API_VERSION_1_2;
+			}
+
+			std::vector<const char *> enabledLayers = {
+				"VK_LAYER_KHRONOS_validation",
+				// "VK_LAYER_LUNARG_api_dump",
+			};
+
+			std::vector<const char *> enabledExtensions = {};
+
+			enabledExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+			uint32_t count;
+			const char **pData = glfwGetRequiredInstanceExtensions(&count);
+			for (uint32_t index = 0; index < count; index++)
+				enabledExtensions.push_back(pData[index]);
+
+			VkInstanceCreateInfo instanceInfo = {};
+			{
+				instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+				instanceInfo.pNext = nullptr;
+				instanceInfo.flags = 0;
+				instanceInfo.pApplicationInfo = &appInfo;
+				instanceInfo.enabledLayerCount = enabledLayers.size();
+				instanceInfo.ppEnabledLayerNames = enabledLayers.data();
+				instanceInfo.enabledExtensionCount = enabledExtensions.size();
+				instanceInfo.ppEnabledExtensionNames = enabledExtensions.data();
+			}
+
+			VK_CHECK_RESULT(vkCreateInstance(&instanceInfo, nullptr, &m_InstanceHandle), "Failed to check result");
+		}
+
+		{
+			VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+			{
+
+				debugUtilsMessengerInfo.pNext = nullptr;
+				debugUtilsMessengerInfo.flags = 0;
+				debugUtilsMessengerInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+				debugUtilsMessengerInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+				debugUtilsMessengerInfo.pfnUserCallback = debugUtilsMessengerCallback;
+				debugUtilsMessengerInfo.pUserData = nullptr;
+			}
+
+			auto pfnVkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_InstanceHandle, "vkCreateDebugUtilsMessengerEXT");
+
+			VK_CHECK_RESULT(pfnVkCreateDebugUtilsMessengerEXT(m_InstanceHandle, &debugUtilsMessengerInfo, nullptr, &m_DebugUtilsMessengerHandle), "Failed to create a Debug Utils Messenger");
+		}
+
+		{
+			m_SurfaceHandle = Vulkan::GetSurface(m_InstanceHandle, reinterpret_cast<GLFWwindow *>(m_pWindow->GetNativeWindow()));
+
+			std::vector<VkPhysicalDevice> physicalDevices = Vulkan::EnmeratePhysicalDevices(m_InstanceHandle);
+			auto physicalDeviceProperties = SelectPhysicalDevice(physicalDevices);
+
+			m_pDevice = new VulkanDevice(physicalDeviceProperties, m_SurfaceHandle);
+		}
+
+		m_pAllocator = new VulkanMemoryAllocator(m_InstanceHandle, m_pDevice);
+		m_pSwapChain = new VulkanSwapChain(m_pDevice, m_SurfaceHandle, &m_pDevice->GetPresentQueue());
+		m_pShaderCompiler = new VulkanShaderCompiler(m_pDevice);
+		m_pDescriptorsLayoutManager = new VulkanDescriptorsLayoutManager(m_pDevice);
+	}
+
+	VulkanRHI::~VulkanRHI()
+	{
+		delete m_pSwapChain;
+
+		delete m_pDevice;
+
+		vkDestroySurfaceKHR(m_InstanceHandle, m_SurfaceHandle, nullptr);
+
+		DestroyDebugUtilsMessenger();
+
+		vkDestroyInstance(m_InstanceHandle, nullptr);
+	}
+
+	void VulkanRHI::DestroyDebugUtilsMessenger()
+	{
+		auto pfnVkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_InstanceHandle, "vkDestroyDebugUtilsMessengerEXT");
+		pfnVkDestroyDebugUtilsMessengerEXT(m_InstanceHandle, m_DebugUtilsMessengerHandle, nullptr);
+	}
+
+	VkPhysicalDevice VulkanRHI::SelectPhysicalDevice(const std::vector<VkPhysicalDevice> &physicalDevices) const
+	{
+		return physicalDevices.front();
+	}
 
 	void VulkanRHI::OnInit()
 	{
@@ -31,149 +153,16 @@ namespace Hazel
 
 	void VulkanRHI::OnUpdate()
 	{
-
 	}
 
-	RHISwapChain* VulkanRHI::GetSwapChain()
+	RHISwapChain *VulkanRHI::GetSwapChain()
 	{
-		return reinterpret_cast<RHISwapChain*>(m_pSwapChain);
+		return reinterpret_cast<RHISwapChain *>(m_pSwapChain);
 	}
 
-	RHIShaderCompiler* VulkanRHI::GetShaderCompiler()
+	RHIShaderCompiler *VulkanRHI::GetShaderCompiler()
 	{
-		return reinterpret_cast<RHIShaderCompiler*>(m_pShaderCompiler);
-	}
-
-	RHIFence* VulkanRHI::CreateFence()
-	{
-		return new VulkanFence(m_pDevice);
-	}
-
-	RHIDescriptorPool* VulkanRHI::CreateDescriptorPool(const std::vector<RHIDescriptorSetLayoutDesc>& layouts, uint32_t maxSets)
-	{
-		return new VulkanDescriptorPool(m_pDevice, m_pDescriptorsLayoutManager, layouts, maxSets);
-	}
-
-	RHIPipelineLayout* VulkanRHI::CreatePipelineLayout(const RHIPipelineLayoutDesc& desc)
-	{
-		std::vector<VkDescriptorSetLayout> layouts = {};
-		layouts.reserve(desc.DescriptorsLayouts.size());
-
-		for (auto& layout : desc.DescriptorsLayouts) layouts.push_back(m_pDescriptorsLayoutManager->GetOrCreate(layout));
-		
-		return new VulkanPipelineLayout(m_pDevice, layouts.size(), layouts.data());
-	}
-
-	RHIGraphicsPipelineState* VulkanRHI::CreateGraphicsPipelineState(const RHIGraphicsPipelineStateDesc& desc)
-	{
-		RHIViewport viewportDesc = {};
-		viewportDesc.Width = m_pWindow->GetWidth();
-		viewportDesc.Height = m_pWindow->GetHeight();
-
-		RHIReact2D reactDesc = {};
-		reactDesc.Width = m_pWindow->GetWidth();
-		reactDesc.Height = m_pWindow->GetHeight();
-
-		VulkanPipelineShaderStagesInitializer		shaderStage(desc.pVS, desc.pPS);
-		VulkanPipelineVertexInputStateInitializer	vertexInput(desc.pVertexLayout);
-		VulkanPipelineInputAssemblyStateInitializer inputAssembly;
-		VulkanPipelineTessellationStateInitializer	tessellation;
-		VulkanPipelineViewportStateInitializer		viewport(viewportDesc, reactDesc);
-		VulkanPipelineRasterizationStateInitializer rasterization;
-		VulkanPipelineMultisampleStateInitializer	multisample;
-		VulkanPipelineDepthStencilStateInitializer	depthStencil;
-		VulkanPipelineColorBlendStateInitializer	colorBlend;
-		VulkanPipelineDynamicStateInitializer		dynamic;
-
-		VkGraphicsPipelineCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		createInfo.pNext = nullptr;
-		createInfo.flags = 0;
-
-		shaderStage		.WriteTo(&createInfo.stageCount, &createInfo.pStages);
-		vertexInput		.WriteTo(&createInfo.pVertexInputState);
-		inputAssembly	.WriteTo(&createInfo.pInputAssemblyState);
-		tessellation	.WriteTo(&createInfo.pTessellationState);
-		viewport		.WriteTo(&createInfo.pViewportState);
-		rasterization	.WriteTo(&createInfo.pRasterizationState);
-		multisample		.WriteTo(&createInfo.pMultisampleState);
-		depthStencil	.WriteTo(&createInfo.pDepthStencilState);
-		colorBlend		.WriteTo(&createInfo.pColorBlendState);
-		dynamic			.WriteTo(&createInfo.pDynamicState);
-
-		VulkanPipelineLayout* pLayout = reinterpret_cast<VulkanPipelineLayout*>(desc.pLayout);
-
-		createInfo.layout = pLayout->GetHandle();
-		createInfo.renderPass = m_pSwapChain->GetRenderPass()->GetHandle();
-		createInfo.subpass = 0;
-		createInfo.basePipelineHandle = VK_NULL_HANDLE;
-		createInfo.basePipelineIndex = 0;
-
-		return new VulkanGraphicsPipelineState(m_pDevice, createInfo);
-	}
-
-
-	RHICommandBuffer* VulkanRHI::AllocateCommandBuffer()
-	{
-		return new VulkanCommandBuffer(m_pCommandAllocator);
-	}
-
-	void VulkanRHI::ExecuteCommandBuffer(RHICommandBuffer* pCommandBuffer, RHIFence* pFence)
-	{
-		m_pDevice->GetGraphicsQueue().SubmitCommandBuffer(
-			reinterpret_cast<VulkanCommandBuffer*>(pCommandBuffer), 
-			reinterpret_cast<VulkanFence*>(pFence)
-		);
-	}
-
-	RHIUniformBuffer* VulkanRHI::CreateUniformBuffer(size_t bufferSize) 
-	{
-		return new VulkanUniformBuffer(m_pDevice, m_pAllocator, bufferSize);
-	}
-
-	RHIStagingBuffer* VulkanRHI::CreateStagingBuffer(size_t bufferSize) 
-	{
-		return new VulkanStagingBuffer(m_pDevice, m_pAllocator, bufferSize);
-	} 
-	
-	RHIVertexBuffer* VulkanRHI::CreateVertexBuffer(uint32_t vertexCount, uint32_t stride) 
-	{
-		return new VulkanVertexBuffer(m_pDevice, m_pAllocator, vertexCount, stride);
-	}
-	
-	RHIIndexBuffer* VulkanRHI::CreateIndexBuffer(uint32_t indciesCount, uint32_t stride) 
-	{
-		return new VulkanIndexBuffer(m_pDevice, m_pAllocator, indciesCount, stride);
-	}
-
-	RHISampler* VulkanRHI::CreateSampler(const RHISamplerDesc& desc)
-	{
-		VkSamplerCreateInfo createInfo		= {};
-		createInfo.sType					= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		createInfo.pNext					= nullptr;
-		createInfo.flags					= 0;
-		createInfo.magFilter				= VulkanUtils::GetFilter(desc.Filter);
-		createInfo.minFilter				= VulkanUtils::GetFilter(desc.Filter);
-		createInfo.mipmapMode				= VK_SAMPLER_MIPMAP_MODE_NEAREST;
-		createInfo.addressModeU				= VulkanUtils::GetAddressMode(desc.AddressU);
-		createInfo.addressModeV				= VulkanUtils::GetAddressMode(desc.AddressV);
-		createInfo.addressModeW				= VulkanUtils::GetAddressMode(desc.AddressW);
-		createInfo.mipLodBias				= desc.MipLODBias;
-		createInfo.anisotropyEnable			= desc.MaxAnisotropy != 0.0f ? VK_FALSE : VK_TRUE;
-		createInfo.maxAnisotropy			= desc.MaxAnisotropy;
-		createInfo.compareEnable			= VulkanUtils::GetCompareOp(desc.ComparisonFunc) != VK_COMPARE_OP_MAX_ENUM ? VK_FALSE : VK_TRUE;
-		createInfo.compareOp				= VulkanUtils::GetCompareOp(desc.ComparisonFunc);
-		createInfo.minLod					= desc.MinLOD;
-		createInfo.maxLod					= desc.MaxLOD;
-		createInfo.borderColor				= VulkanUtils::GetBorderColor(desc.Border);
-		createInfo.unnormalizedCoordinates	= (desc.MinLOD || desc.MaxLOD)? VK_TRUE : VK_FALSE;
-
-		return new VulkanSampler(m_pDevice, createInfo);
-	}
-
-	RHITexture2D* VulkanRHI::CreateTexture2D(const RHITexture2DDesc& desc) 
-	{
-		return new VulkanTexture2D(m_pDevice, m_pAllocator, desc);
+		return reinterpret_cast<RHIShaderCompiler *>(m_pShaderCompiler);
 	}
 
 }

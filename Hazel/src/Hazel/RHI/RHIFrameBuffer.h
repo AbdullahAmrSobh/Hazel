@@ -1,7 +1,5 @@
 #pragma once
 
-#include "RHIObject.h"
-
 namespace Hazel {
 
 	class RHIRenderPass
@@ -14,7 +12,7 @@ namespace Hazel {
 		uint32_t m_AttachmentsCount;
 	};
 
-	class RHIFrameBuffer : public RHIObject
+	class RHIFrameBuffer 
 	{
 	public:
 		RHIFrameBuffer(uint32_t width, uint32_t height, uint32_t frameIndex) 

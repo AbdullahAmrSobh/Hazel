@@ -22,14 +22,13 @@ namespace Hazel {
 		
 		m_pRHI = RHI::CreateRHI(m_Window.get());
 
-		m_ImGuiLayer = new ImGuiLayer(m_pRHI);
-		PushOverlay(m_ImGuiLayer);
+		// m_ImGuiLayer = new ImGuiLayer(m_pRHI);
+		// PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application()
 	{
 		HZ_PROFILE_FUNCTION();
-		delete m_pRHI;
 	}
 
 	void Application::PushLayer(Layer* layer)

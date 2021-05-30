@@ -1,20 +1,24 @@
 #include "hzpch.h"
 #include "Platform/VulkanRHI/VulkanUtils.h"
+#include "Platform/VulkanRHI/VulkanWrapper.h"
 #include "Platform/VulkanRHI/VulkanDevice.h"
 #include "Platform/VulkanRHI/VulkanQueue.h"
+
+#include "Platform/VulkanRHI/VulkanDevice.h"
 
 namespace Hazel 
 {
 
-	VulkanDevice::VulkanDevice(const Ref<VulkanPhysicalDeviceProperties>& pDeviceProperties, VkSurfaceKHR surfaceHandle)
+	VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surfaceHandle)
 		: m_DeviceHandle(VK_NULL_HANDLE)
-		, m_pDeviceProperties(pDeviceProperties)
+		, m_hPhysicalDevice(physicalDevice)
 		, m_pPresentQueue(nullptr)
 		, m_pGraphicsQueue(nullptr)
 		, m_pComputeQueue(nullptr)
 		, m_pTransferQueue(nullptr)
 	{
-		std::vector<const char*> enabledLayers = GetEnabledLayers(), enabledExtensions = GetEnabledExtensions();
+		std::vector<const char*> enabledLayers = GetEnabledLayers();
+		std::vector<const char*> enabledExtensions = GetEnabledExtensions();
 		VkPhysicalDeviceFeatures enabledFeatures = GetEnabledFeatures();
 		
 		std::vector<VkDeviceQueueCreateInfo> queuesCreateInfo;
@@ -23,12 +27,14 @@ namespace Hazel
 		
 		float priorities = 1.0f;
 
-		for (const auto& qfp : m_pDeviceProperties->QueueFamilies)
+		auto deviceQueueFamilyProperties = Vulkan::GetPhysicalDeviceQueueFamilies(physicalDevice);
+
+		for (const auto& qfp : deviceQueueFamilyProperties)
 		{
 			VkBool32 presentSupport = VK_FALSE;
 
 			VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
-				m_pDeviceProperties->PhysicalDeviceHandle, familyIndex, surfaceHandle, &presentSupport);
+				physicalDevice, familyIndex, surfaceHandle, &presentSupport);
 			VK_CHECK_RESULT(result, "Query Failed");
 
 			if (presentSupport && (qfp.queueFlags & VK_QUEUE_GRAPHICS_BIT))
@@ -60,7 +66,7 @@ namespace Hazel
 		createInfo.ppEnabledExtensionNames	= enabledExtensions.data();
 		createInfo.pEnabledFeatures			= &enabledFeatures;
 
-		VK_CHECK_RESULT(vkCreateDevice(pDeviceProperties->PhysicalDeviceHandle, &createInfo, nullptr, &m_DeviceHandle), "Failed to check result");
+		VK_CHECK_RESULT(vkCreateDevice(physicalDevice, &createInfo, nullptr, &m_DeviceHandle), "Failed to check result");
 
 		 m_pPresentQueue = new VulkanQueue(this, familyIndex);
 		m_pGraphicsQueue = m_pPresentQueue;
@@ -70,6 +76,7 @@ namespace Hazel
 
 	VulkanDevice::~VulkanDevice()
 	{
+		vkDeviceWaitIdle(m_DeviceHandle);
 		delete m_pPresentQueue;
 		vkDestroyDevice(m_DeviceHandle, nullptr);
 	}
